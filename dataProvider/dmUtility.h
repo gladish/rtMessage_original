@@ -77,7 +77,6 @@ public:
 
   static bool isListIndex(const char* s)
   {
-    rtLog_Warn("isListIndex %s", s);
     if(!s)
       return false;
     int ln = (int)strlen(s);
@@ -89,7 +88,6 @@ public:
         break;
       else
         i--;
-    rtLog_Warn("isListIndex %d %s", i, s+i+1);
     return atoi(s+i+1) != 0;
   }
 
