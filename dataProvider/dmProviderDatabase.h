@@ -29,16 +29,16 @@ class dmProviderDatabase
 public:
   dmProviderDatabase(std::string const& dir);
 
-  dmQuery* createQuery() const;
-  dmQuery* createQuery(dmProviderOperation op, char const* s) const;
+  dmQuery* createQuery();
+  dmQuery* createQuery(dmProviderOperation op, char const* s);
   std::shared_ptr<dmProviderInfo> getProviderByName(std::string const& s) const;
   std::shared_ptr<dmProviderInfo> getProviderByObjectName(std::string const& s) const;
-
+  std::shared_ptr<dmProviderInfo> getProviderByParamterName(std::string const& s, bool* isListItem) const;
 private:
   void loadFromDir(std::string const& dir);
   void loadFile(std::string const& dir, char const* fname);
   std::shared_ptr<dmProviderInfo> makeProviderInfo(char const* json);
-
+  void buildProviderTree();
 private:
   std::string m_modelDirectory;
 };

@@ -26,7 +26,7 @@
 #include <sstream>
 #include <iomanip>
 #include <memory>
-
+#include <list>
 
 #include "rtConnection.h"
 #include "rtMessage.h"
@@ -43,6 +43,7 @@ namespace
   using dmDatabase = std::map< std::string, std::shared_ptr<dmProviderInfo> >;
 
   dmDatabase model_db;
+  dmDatabase model_roots;
 
   bool matches_object(char const* query, char const* obj)
   {
@@ -56,35 +57,31 @@ namespace
 class dmQueryImpl : public dmQuery
 {
 public:
-  dmQueryImpl()
+  dmQueryImpl(dmProviderDatabase* DB)
   {
     rtConnection_Create(&m_con, "DMCLI", "tcp://127.0.0.1:10001");
 
-    #ifdef DEFAULT_DATAMODELDIR
-    std::string datamodel_dir = DEFAULT_DATAMODELDIR;
-    #else
-    std::string datamode_dir;
-    #endif
-
-    db = new dmProviderDatabase(datamodel_dir);
+    db = DB;
   }
 
   ~dmQueryImpl()
   {
     rtConnection_Destroy(m_con);
-    if (db)
-    {
-      delete db;
-      db = nullptr;
-    }
   }
 
   void makeRequest(std::string& topic, std::string& queryString)
   {
+    std::string instanceId;
+    if (dmUtility::isWildcard(m_query.c_str()))
+      instanceId = dmUtility::trimWildcard(m_query);
+    else
+      instanceId = dmUtility::trimProperty(m_query);
+    rtLog_Warn("makeRequest objectId=%s", instanceId.c_str());
+
     rtMessage req;
     rtMessage_Create(&req);
     rtMessage_SetString(req, "method", m_operation.c_str());
-    rtMessage_SetString(req, "provider", m_providerInfo->providerName().c_str());
+    rtMessage_SetString(req, "provider", instanceId.c_str());
     rtMessage item;
     rtMessage_Create(&item);
     rtMessage_SetString(item, "name", queryString.c_str());
@@ -163,7 +160,14 @@ public:
     }
 
     std::string topic("RDK.MODEL.");
-    topic += m_providerInfo->providerName();
+    std::string instanceId;
+    if (dmUtility::isWildcard(m_query.c_str()))
+      instanceId = dmUtility::trimWildcard(m_query);
+    else
+      instanceId = dmUtility::trimProperty(m_query);
+
+    rtLog_Warn("exec instanceId=%s", instanceId.c_str());
+    topic += instanceId;
 
     rtLog_Debug("sending dm query : %s on topic :%s", m_query.c_str(), topic.c_str());
 
@@ -239,6 +243,7 @@ dmProviderDatabase::dmProviderDatabase(std::string const& dir)
   : m_modelDirectory(dir)
 {
   loadFromDir(dir);
+  buildProviderTree();
 }
 
 void
@@ -302,6 +307,48 @@ dmProviderDatabase::loadFile(std::string const& dir, char const* fname)
   }
 }
 
+void printTree(std::shared_ptr<dmProviderInfo> p, int curdep)
+{
+  if(!p)
+    return;
+  char buffer[200];
+  sprintf(buffer, "%*.s%s", curdep, "  ", p->objectName().c_str());
+  rtLog_Warn("tree(%d): %s children=%d", curdep, buffer, (int)p->getChildren().size());
+  curdep++;
+  for(size_t i = 0; i < p->getChildren().size(); ++i)
+    printTree(p->getChildren()[i],curdep);  
+}
+
+void
+dmProviderDatabase::buildProviderTree()
+{
+  for (auto itr : model_db)
+  {
+    rtLog_Warn("buildProviderTree %s isList=%d", itr.second->objectName().c_str(), (int)itr.second->isList());
+    std::string parentName = dmUtility::trimProperty(itr.second->objectName());
+
+    bool found = false;
+    for (auto itr2 : model_db)
+    {
+      if(itr2.second->objectName() == parentName)
+      {
+rtLog_Warn("adding child %s to %s", itr.second->objectName().c_str(), parentName.c_str());
+        itr2.second->addChild(itr.second);
+        found = true;
+        break;
+      }
+    }
+  
+    if(!found)
+      model_roots.insert(std::make_pair(itr.second->objectName(), itr.second));
+  }
+
+  for (auto itr : model_roots)
+  {
+    printTree(itr.second, 0);
+  }
+}
+
 #if 0
 int
 dmProviderDatabase::isWritable(char const* param, char const* provider)
@@ -331,9 +378,69 @@ dmProviderDatabase::isWritable(char const* param, char const* provider)
 #endif
 
 std::shared_ptr<dmProviderInfo>
+dmProviderDatabase::getProviderByParamterName(std::string const& s, bool* isListItem) const
+{
+  using namespace std;
+  if(s.length() == 0)
+    return nullptr;
+  std::string p;
+  if (dmUtility::isWildcard(s.c_str()))
+    p = dmUtility::trimWildcard(s);
+  else
+    p = dmUtility::trimProperty(s);
+  std::string p2 = p;
+  size_t n1 = 0;
+  size_t n2 = p.find('.');
+  string fullName;
+  string instanceName;
+  bool isList = false;
+  std::shared_ptr<dmProviderInfo> provider;
+  while(true)
+  {
+    string token = p.substr(n1, n2-n1);
+ //   rtLog_Warn("isList=%d", (int)isList);
+    if(!isList)
+    {
+      *isListItem = false;
+      if(!fullName.empty())
+        fullName += ".";
+      fullName += token;
+
+      auto itr = model_db.find(fullName);    
+      if(itr != model_db.end())
+      {
+        provider = itr->second;
+       if(provider && provider->isList())
+          isList = true;
+      }
+      else if(provider)
+      {
+        rtLog_Warn("Failed to find %s", fullName.c_str());
+        return nullptr;
+      }
+    }
+    else
+    {
+      isList = false;
+      *isListItem = true;
+    }
+    
+    if(!instanceName.empty())
+      instanceName += ".";
+    instanceName += token;
+    if(n2 == string::npos || n2 > p.length()-1)
+      break;
+    n1 = n2+1;
+    n2 = p.find('.', n1);
+  }
+  rtLog_Warn("getProviderByParamterName input=%s output=%s trimmed=%s fullName=%s instanceName=%s", s.c_str(), provider != nullptr ? provider->objectName().c_str() : "null", p2.c_str(),  fullName.c_str(), instanceName.c_str());
+  return provider;
+}
+
+std::shared_ptr<dmProviderInfo>
 dmProviderDatabase::getProviderByObjectName(std::string const& s) const
 {
-  rtLog_Info("get provider by objectname:%s", s.c_str());
+  //rtLog_Info("get provider by objectname:%s", s.c_str());
 
   std::string objectName;
   if (dmUtility::isWildcard(s.c_str()))
@@ -342,8 +449,8 @@ dmProviderDatabase::getProviderByObjectName(std::string const& s) const
     objectName = s;
 
   auto itr = model_db.find(objectName);
-  if (itr == model_db.end())
-    rtLog_Debug("failed to find %s in model database", objectName.c_str());
+  //if (itr == model_db.end())
+  //  rtLog_Debug("failed to find %s in model database", objectName.c_str());
 
   return (itr != model_db.end())
     ? itr->second
@@ -402,36 +509,33 @@ dmProviderDatabase::getParameters(char const* provider) const
 #endif
 
 dmQuery*
-dmProviderDatabase::createQuery() const
+dmProviderDatabase::createQuery()
 {
-  return new dmQueryImpl();
+  return new dmQueryImpl(this);
 }
 
 dmQuery* 
-dmProviderDatabase::createQuery(dmProviderOperation op, char const* queryString) const
+dmProviderDatabase::createQuery(dmProviderOperation op, char const* queryString)
 {
   if (!queryString)
     return nullptr;
 
   std::string objectName(queryString);
-
   if (dmUtility::isWildcard(objectName.c_str()))
     objectName = dmUtility::trimWildcard(objectName);
   else
     objectName = dmUtility::trimProperty(objectName);
 
-  if (dmUtility::isListIndex(objectName.c_str()))
-    objectName = dmUtility::trimProperty(objectName);//trim again to remove index
-
-  std::shared_ptr<dmProviderInfo> providerInfo = getProviderByObjectName(objectName);
+  bool isListItem;
+  std::shared_ptr<dmProviderInfo> providerInfo = getProviderByParamterName(queryString, &isListItem);
 
   if (!providerInfo)
   {
-    rtLog_Warn("failed to find provider for query string:%s", objectName.c_str());
+    rtLog_Warn("failed to find provider for query string:%s", queryString);
     return nullptr;
   }
 
-  dmQueryImpl* query = new dmQueryImpl();
+  dmQueryImpl* query = new dmQueryImpl(this);
   bool status = query->setQueryString(op, queryString);
   if (status)
     query->setProviderInfo(providerInfo);

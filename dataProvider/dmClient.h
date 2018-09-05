@@ -19,6 +19,12 @@
 #include "dmProviderOperation.h"
 #include "rtLog.h"
 
+class dmProviderProxy
+{
+public:
+private:
+};
+
 class dmClientNotifier
 {
 public:
@@ -30,7 +36,7 @@ class dmClient
 {
 public:
   virtual ~dmClient() { }
-  virtual bool runQuery(dmProviderOperation operation, std::string const& parameter, dmClientNotifier* notifier) = 0;
+  virtual bool runQuery(dmProviderOperation operation, std::string const& parameter, bool recursive, dmClientNotifier* notifier) = 0;
 
   static dmClient* create(std::string const& datamodelDir, rtLogLevel logLevel = RT_LOG_WARN);
   static void destroy(dmClient* client);

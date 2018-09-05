@@ -18,7 +18,6 @@
 #include <string>
 
 #include "dmValueType.h"
-#include "rtLog.h"
 
 class dmProviderDatabase;
 
@@ -41,9 +40,6 @@ public:
   inline std::string const& fullName() const
     { return m_full_name; }
 
-  inline uint32_t index() const
-    { return m_index; }
-
 public:
   dmPropertyInfo();
   void setName(std::string const& name);
@@ -51,7 +47,6 @@ public:
   void setIsOptional(bool b);
   void setIsWritable(bool b);
   void setFullName(std::string const& name);
-  void setIndex(uint32_t i);
 
 private:
   std::string m_name;
@@ -59,7 +54,6 @@ private:
   bool        m_optional;
   bool        m_writable;
   std::string m_full_name;
-  uint32_t    m_index;
 };
 
 

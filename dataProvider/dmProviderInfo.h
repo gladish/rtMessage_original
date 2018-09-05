@@ -16,9 +16,11 @@
 #define __DM_PROVIDER_INFO_H__
 
 #include "dmPropertyInfo.h"
+#include "rtLog.h"
 
 #include <string>
 #include <vector>
+#include <memory>
 
 class dmProviderDatabase;
 class dmPropertyInfo;
@@ -37,22 +39,48 @@ public:
   inline std::vector<dmPropertyInfo> const& properties() const
     { return m_props; }
 
-  inline bool isList() const
+  dmPropertyInfo getPropertyInfo(char const* s) const;
+
+  bool isList() const 
     { return m_isList; }
 
-  dmPropertyInfo getPropertyInfo(char const* s) const;
+  void setIsList(bool b)
+    { m_isList = b; }
+
+  std::shared_ptr<dmProviderInfo> getParent()
+  {
+    return m_parent;
+  }
+
+  void setParent(std::shared_ptr<dmProviderInfo> parent)
+  {
+    m_parent = parent;
+  }
+
+  std::vector< std::shared_ptr<dmProviderInfo> > const& getChildren()
+  {
+    return m_children;
+  }
+
+  void addChild(std::shared_ptr<dmProviderInfo> child)
+  {
+    rtLog_Debug("addChild(%p) %s to parent %s", this, child->objectName().c_str(), objectName().c_str());
+    m_children.push_back(child);
+    child->setParent(std::shared_ptr<dmProviderInfo>(this));
+  }  
 
 private:
   dmProviderInfo();
   void setProviderName(std::string const& name);
   void setObjectName(std::string const& name);
   void addProperty(dmPropertyInfo const& propInfo);
-  void setIsList(bool isList);
 
 private:
   std::string m_objectName;
   std::string m_providerName;
   std::vector<dmPropertyInfo> m_props;
   bool m_isList;
+  std::shared_ptr<dmProviderInfo> m_parent;
+  std::vector< std::shared_ptr<dmProviderInfo> > m_children;
 };
 #endif

@@ -38,10 +38,6 @@ void dmProviderInfo::addProperty(dmPropertyInfo const& propInfo)
   m_props.push_back(propInfo);
 }
 
-void dmProviderInfo::setIsList(bool isList)
-{
-  m_isList = isList;
-}
 
 dmPropertyInfo
 dmProviderInfo::getPropertyInfo(char const* propertyName) const

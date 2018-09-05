@@ -78,9 +78,6 @@ dmQueryResult::addValue(dmPropertyInfo const& prop, dmValue const& val, int code
 void dmQueryResult::updateFullNames()
 {
   for (auto& param : m_values)
-    if(m_index > 0)
-      param.fullName = dmUtility::getFullNameWithIndex(param.Info.fullName(), m_index);
-    else
       param.fullName = param.Info.fullName();
 }
 

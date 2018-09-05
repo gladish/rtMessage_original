@@ -23,6 +23,11 @@ dmProvider::dmProvider()
 {
 }
 
+dmProvider::dmProvider(const char* alias)
+{
+  m_alias = alias;
+}
+
 dmProvider::~dmProvider()
 {
 }
@@ -38,7 +43,8 @@ dmProvider::doGet(std::vector<dmPropertyInfo> const& params, std::vector<dmQuery
     auto itr = m_provider_functions.find(propInfo.name());
     if ((itr != m_provider_functions.end()) && (itr->second.getter != nullptr))
     {
-      itr->second.getter(propInfo, temp);
+      dmValue val = itr->second.getter();
+      temp.addValue(propInfo, val);
     }
     else
     {
@@ -52,8 +58,6 @@ dmProvider::doGet(std::vector<dmPropertyInfo> const& params, std::vector<dmQuery
     }
     else
     {
-      if(propInfo.index() != -1)
-        temp.setIndex(propInfo.index()+1);
       result.push_back(temp);
     }
 
@@ -78,7 +82,8 @@ dmProvider::doSet(std::vector<dmNamedValue> const& params, std::vector<dmQueryRe
     auto itr = m_provider_functions.find(value.name());
     if ((itr != m_provider_functions.end()) && (itr->second.setter != nullptr))
     {
-      itr->second.setter(value.info(), value.value(), temp);
+      itr->second.setter(value.value());
+      temp.addValue(value.info(), value.value());
     }
     else
     {
@@ -92,8 +97,6 @@ dmProvider::doSet(std::vector<dmNamedValue> const& params, std::vector<dmQueryRe
     }
     else
     {
-      if(value.info().index() != -1)
-        temp.setIndex(value.info().index()+1);
       result.push_back(temp);
     }
 
@@ -142,9 +145,4 @@ dmProvider::onSet(std::string const& propertyName, setter_function func)
     funcs.getter = nullptr;
     m_provider_functions.insert(std::make_pair(propertyName, funcs));
   }
-}
-
-size_t dmProvider::getListSize()
-{
-  return 0;
 }

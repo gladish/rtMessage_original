@@ -25,6 +25,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <list>
 
 class dmProvider;
 class dmPropertyInfo;
@@ -77,6 +78,7 @@ protected:
 
 private:
   std::map< std::string, std::unique_ptr<dmProvider> > m_providers;
+  std::map< std::string, std::list<std::string> > m_lists;
   std::string m_providername;
 };
 

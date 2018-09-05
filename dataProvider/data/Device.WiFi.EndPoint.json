@@ -1,9 +1,13 @@
 {
   "name": "Device.WiFi.EndPoint",
-  "provider" : "wifi",
+  "provider" : "netsrvmgr",
   "is_list" : true,
   "properties":
     [
+      {"name": "AdapterNumberOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
+      {"name": "AdapterIdsOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
+      {"name": "InterfaceNumberOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
+      {"name": "InterfaceIdsOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
       {"name": "SSID", "type": "string", "optional": false, "writable": false, "version": "2.0"},
       {"name": "SecurityType", "type": "string", "optional": false, "writable": false, "version": "2.0"},
       {"name": "Channel", "type": "string", "optional": false, "writable": false, "version": "2.0"},

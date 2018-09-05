@@ -30,6 +30,7 @@ void print_help()
   printf("\t-l  --log-level   Set log level 0(verbose)-4\n");
   printf("\t-g  --get         Gets a list of parameters\n");
   printf("\t-s  --set         Sets a list of parameters\n");
+  printf("\t-r  --recursive   get all sub-ojects, recursively. only applies when -g(--get) is used.  \n");
   printf("\n");
   printf("Examples:\n");
   printf("\t1.) dmcli -g Device.DeviceInfo.ModelName,Device.DeviceInfo.SerialNumber\n");
@@ -70,10 +71,38 @@ public:
   }
 };
 
+void splitParams(std::string const& params, std::vector<std::string>& tokens)
+{
+  size_t first = 0;
+  size_t last = 0;
+  bool inbracket;
+  for(last = 0; last < params.size(); ++last)
+  {
+    if(params[last] == '{')
+      inbracket = true;
+    else if(params[last] == '}')
+      inbracket = false;
+    else if(params[last] == ',' && !inbracket)
+    {
+      tokens.push_back(params.substr(first, last-first));
+      first = last+1;
+    }
+  }
+  if(last == params.size() && last - first > 1)
+      tokens.push_back(params.substr(first, last-first));
+
+  for(size_t i = 0; i < tokens.size(); ++i)
+  {
+    //trim whitespace
+    std::cout << "token " << i << " = " << tokens[i] << std::endl;
+  }
+}
+
 int main(int argc, char *argv[])
 {
   int exit_code = 0;
   std::string param_list;
+  bool recursive = false;
   rtLogLevel log_level = RT_LOG_FATAL;
 
   #ifdef DEFAULT_DATAMODELDIR
@@ -97,6 +126,7 @@ int main(int argc, char *argv[])
     {
       { "get", required_argument, 0, 'g' },
       { "set", required_argument, 0, 's' },
+      { "recursive", no_argument, 0, 'r' },
       { "help", no_argument, 0, 'h' },
       { "datamode-dir", required_argument, 0, 'd' },
       { "verbose", no_argument, 0, 'v' },
@@ -104,7 +134,7 @@ int main(int argc, char *argv[])
       { 0, 0, 0, 0 }
     };
 
-    int c = getopt_long(argc, argv, "d:g:hs:vl:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:g:hs:rvl:", long_options, &option_index);
     if (c == -1)
       break;
 
@@ -122,6 +152,10 @@ int main(int argc, char *argv[])
       case 's':
         param_list = optarg;
         op = dmProviderOperation_Set;
+        break;
+
+      case 'r':
+        recursive = true;
         break;
 
       case 'h':
@@ -151,27 +185,13 @@ int main(int argc, char *argv[])
 
   dmClient* client = dmClient::create(datamodel_dir.c_str(), log_level);
 
-  std::string delimiter = ",";
-  std::string paramlist(param_list);
-  std::string token;
+  std::vector<std::string> tokens;
+  splitParams(param_list, tokens);
 
-  size_t begin = 0;
-  size_t end = 0;
-
-  while (begin != std::string::npos)
+  for(auto token: tokens)
   {
-    // split token on ',' and remove whitespace
-    end = param_list.find(',', begin);
-    std::string token = param_list.substr(begin, (end - begin));
-    token.erase(std::remove_if(token.begin(), token.end(), [](char c)
-    {
-      return ::isspace(c);
-    }), token.end());
-
     Notifier notifier;
-    client->runQuery(op, token, &notifier);
-
-    begin = end == std::string::npos ? std::string::npos : end + 1;
+    client->runQuery(op, token, recursive, &notifier);
   }
 
   dmClient::destroy(client);

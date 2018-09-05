@@ -16,8 +16,8 @@
 #define __DM_UTILITY_H__
 
 #include <string>
-#include <sstream>
 #include <string.h>
+#include <sstream>
 #include "rtLog.h"
 
 class dmUtility
@@ -77,66 +77,20 @@ public:
     return t;
   }
 
-  static bool isListIndex(const char* s)
+  static void splitString(std::string const& s, char delim, std::vector<std::string>& out)
   {
-    if(!s)
-      return false;
-    int ln = (int)strlen(s);
-    if(ln == 0)
-      return false;
-    int i = ln - 1;
-    while(i >= 0)
-      if(s[i] == '.')
-        break;
-      else
-        i--;
-    return atoi(s+i+1) != 0;
-  }
-
-  //list property is in form [[STRING.]...]NUMBER.[STRING]
-  //NUMBER must be a valid number [1-n]
-  //example: Device.WiFi.EndPoint.1.Status
-  //example: Device.WiFi.EndPoint.9745.Status
-  //wildcard:  Device.WiFi.EndPoint.6.
-  //invalid formats: [[STRING.]...]NUMBER.NUMBER : ex: Device.WiFi.EndPoint.3.2
-  static bool parseListProperty(const std::string& s, uint32_t& index, std::string& name)
-  {
-    std::string::size_type idx = s.rfind('.');
-    if (idx != std::string::npos && idx>0)
+    size_t n1 = 0;
+    size_t n2 = s.find(delim);
+    while(true)
     {
-      std::string::size_type idx2 = s.rfind('.', idx-1);
-      if (idx2 != std::string::npos)
-      {
-        std::string last = s.substr(idx + 1);
-        std::string pathUpToLast = s.substr(0, idx);
-        std::string secondLast = pathUpToLast.substr(idx2 + 1);
-        uint32_t i = atoi(secondLast.c_str());
-        if (i && 
-            (last.size() == 0 || //wildcard
-             !atoi(last.c_str()))) //non number
-        {
-          index = i;
-          name = pathUpToLast.substr(0, idx2+1) + last;
-          return true;
-        }
-      }
+      std::string token = s.substr(n1, n2-n1);
+      out.push_back(token);
+      if(n2 == std::string::npos || n2 > s.length()-1)
+        break;
+      n1 = n2+1;
+      n2 = s.find(delim, n1);
     }
-    return false;
   }
-
-  //basic list support supporting a single list object as the last object in the param full name
-  static std::string getFullNameWithIndex(const std::string& name, int index)
-  {
-    if(index < 1)
-      return name;
-
-    std::string first = trimProperty(name);
-    std::string last = trimPropertyName(name);
-    std::stringstream ss;
-    ss << first << "." << index << "." << last;
-    return ss.str();
-  }
- 
 };
 
 #endif

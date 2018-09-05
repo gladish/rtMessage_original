@@ -180,37 +180,21 @@ private:
     char const* propertyName = nullptr;
     rtMessage_GetString(item, "name", &propertyName);
 
-    rtLog_Debug("decodeGetRequest property name=%s\n", (propertyName != nullptr ? propertyName : ""));
-
-    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByName(providerName);
+    rtLog_Debug("decodeGetRequest property name=%s provider=%s\n", (propertyName != nullptr ? propertyName : ""), (providerName != nullptr ? providerName : ""));
+    bool isListItem;
+    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByParamterName(propertyName, &isListItem);
     if (objectInfo)
     {
       rtLog_Debug("decodeGetRequest object found %s", providerName);
-      if(objectInfo->isList())
-      {
-        uint32_t index;
-        std::string indexlessPropertyName;
-        dmUtility::parseListProperty(propertyName, index, indexlessPropertyName);
 
-        if (dmUtility::isWildcard(indexlessPropertyName.c_str()))
-          params = objectInfo->properties();
-        else
-          params.push_back(objectInfo->getPropertyInfo(indexlessPropertyName.c_str()));
-        
-        for(int i = 0; i < (int)params.size(); ++i)
-          params[i].setIndex(index-1);//index from 1 based to 0 based
-      }
+      if (dmUtility::isWildcard(propertyName))
+        params = objectInfo->properties();
       else
-      {
-        if (dmUtility::isWildcard(propertyName))
-          params = objectInfo->properties();
-        else
-          params.push_back(objectInfo->getPropertyInfo(propertyName));
-      }
+        params.push_back(objectInfo->getPropertyInfo(propertyName));
     }
     else
     {
-      rtLog_Debug("decodeGetRequest object not found %s", providerName);
+      rtLog_Debug("decodeGetRequest object not found %s", propertyName);
     }
 
     rtMessage_Release(item);
@@ -236,24 +220,14 @@ private:
     rtMessage_GetString(item, "value", &value);
 
     rtLog_Debug("decoderSetRequest property name=%s value=%s\n", (propertyName != nullptr ? propertyName : ""), (value != nullptr ? value : ""));
-    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByName(providerName);
 
+    bool isListItem;
+    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByParamterName(propertyName, &isListItem);
     if (objectInfo)
     {
       rtLog_Debug("decodeSetRequest object found %s", propertyName);
 
-      std::string propertyLastName;
-      uint32_t index;
-
-      if(objectInfo->isList())
-      {
-        std::string indexlessPropertyName;
-        dmUtility::parseListProperty(propertyName, index, indexlessPropertyName);
-        
-        propertyLastName = dmUtility::trimPropertyName(indexlessPropertyName);
-      }
-      else
-        propertyLastName = dmUtility::trimPropertyName(propertyName);
+      std::string propertyLastName = dmUtility::trimPropertyName(propertyName);
 
       std::vector<dmPropertyInfo> props = objectInfo->properties();
 
@@ -266,16 +240,11 @@ private:
         });
 
       if (itr != props.end())
-      {
-        if(objectInfo->isList())
-          itr->setIndex(index-1);
         params.push_back(makeNamedValue(*itr, value));
-
-      }
     }
     else
     {
-      rtLog_Debug("decodeSetRequest object not found %s", providerName);
+      rtLog_Debug("decodeSetRequest object not found %s", propertyName);
     }
 
     rtMessage_Release(item);
@@ -335,12 +304,23 @@ bool
 dmProviderHost::registerProvider(char const* object, std::unique_ptr<dmProvider> provider)
 {
   bool b = false;
-  std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByObjectName(object); 
+  bool isListItem;
+  std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByParamterName(std::string(object)+".", &isListItem); 
+  rtLog_Warn("registerProvider fullName=%s instanceName=%s", objectInfo->objectName().c_str(), object);
+
   if (objectInfo)
   {
-    b = providerRegistered(objectInfo->providerName());
+    b = providerRegistered(object);
     if (b)
-      m_providers.insert(std::make_pair(objectInfo->providerName(), std::move(provider)));
+    {
+      m_providers.insert(std::make_pair(object, std::move(provider)));
+      if(objectInfo->isList())
+      {
+        std::string listName = dmUtility::trimProperty(object);
+        rtLog_Warn("adding list item %s to list %s", object, listName.c_str());
+        m_lists[listName].push_back(object);
+      }
+    }
   }
   else
   {
