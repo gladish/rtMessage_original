@@ -16,90 +16,104 @@
 #ifndef __DM_VALUE_H__
 #define __DM_VALUE_H__
 
-#include <stdint.h>
+#include "dmDataType.h"
+
 #include <memory>
+#include <sstream>
+#include <vector>
 #include <string>
-#include "dmValueType.h"
-#include "dmPropertyInfo.h"
+
+#include <stdint.h>
+#include <string.h>
 
 class dmValue
 {
 public:
-  dmValue(std::string const& s);
-  dmValue(char const* s);
-  dmValue(int8_t n);
-  dmValue(int16_t n);
-  dmValue(int32_t n);
-  dmValue(int64_t n);
-  dmValue(uint8_t n);
-  dmValue(uint16_t n);
-  dmValue(uint32_t n);
-  dmValue(uint64_t n);
-  dmValue(float f);
-  dmValue(double d);
-  dmValue(bool b);
+  using pointer = std::shared_ptr<dmValue>;
+  using pointer_list = std::vector<pointer>;
 
-  std::string toString() const;
-
-  inline dmValueType type() const
+  dmValue(dmDataType t) : m_type(t) { }
+  virtual ~dmValue();
+  virtual std::string to_string() const = 0;
+  inline dmDataType type() const
     { return m_type; }
-
-  operator uint32_t() const
-    { return m_value.uint32Value; }
-
 private:
-  union value {
-    value() { }
-    value(int8_t n) : int8Value(n) { }
-    value(int16_t n) : int16Value(n) { }
-    value(int32_t n) : int32Value(n) { }
-    value(int64_t n) : int64Value(n) { }
-    value(uint8_t n) : uint64Value(n) { }
-    value(uint16_t n) : uint64Value(n) { }
-    value(uint32_t n) : uint64Value(n) { }
-    value(uint64_t n) : uint64Value(n) { }
-    value(float f) : singleValue(f) { }
-    value(double d) : doubleValue(d) { }
-    value(bool b) : booleanValue(b) { }
-    uint8_t     uint8Value;
-    uint16_t    uint16Value;
-    uint32_t    uint32Value;
-    uint64_t    uint64Value;
-    int8_t      int8Value;
-    int16_t     int16Value;
-    int32_t     int32Value;
-    int64_t     int64Value;
-    float       singleValue;
-    double      doubleValue;
-    bool        booleanValue;
-  };
-
-  dmValueType   m_type;
-  std::string   m_string;
-  value         m_value;
+  dmDataType m_type;
 };
 
-class dmNamedValue
+template<class T> class dmValueGeneric: public dmValue
 {
 public:
-  dmNamedValue(dmPropertyInfo prop, dmValue const& value)
-    : m_prop(prop)
-    , m_value(value) 
+  dmValueGeneric(dmDataType type, T value) 
+    : dmValue(type)
+    , m_value(value) { }
+
+  virtual ~dmValueGeneric() { }
+  virtual std::string to_string() const override
   {
+    std::stringstream buff;
+    buff << m_value;
+    return buff.str();
   }
 
-  inline dmPropertyInfo info() const
-    { return m_prop; }
+protected:
+  T m_value;
+};
 
-  inline std::string const& name() const
-    { return m_prop.name(); }
+struct dmObjectReference : public dmValueGeneric<std::string>
+{
+  dmObjectReference(std::string const& s) : dmValueGeneric<std::string>(dmDataType::Reference, s)
+    { }
+  virtual std::string to_string() const override;
+};
 
-  inline dmValue const& value() const
-    { return m_value; }
+struct dmDateTime : public dmValueGeneric<time_t>
+{
+  dmDateTime(time_t t) : dmValueGeneric<time_t>(dmDataType::DateTime, t) { }
+  dmDateTime(std::string const& s) 
+    : dmValueGeneric<time_t>(dmDataType::DateTime, dmDateTime::timeFromString(s)) { }
+  virtual std::string to_string() const override;
+  static time_t timeFromString(std::string const& s);
+};
 
-private:
-  dmPropertyInfo  m_prop;
-  dmValue         m_value;
+struct dmValueUInt8 : public dmValueGeneric<uint8_t>
+{
+  dmValueUInt8(uint8_t n) : dmValueGeneric<uint8_t>(dmDataType::UInt8, n) { }
+};
+
+struct dmValueSInt8 : public dmValueGeneric<int8_t>
+{
+  dmValueSInt8(int8_t n) : dmValueGeneric<int8_t>(dmDataType::SInt8, n) { }
+};
+
+struct dmValueUInt16 : public dmValueGeneric<uint16_t>
+{
+  dmValueUInt16(uint16_t n) : dmValueGeneric<uint16_t>(dmDataType::UInt16, n) { }
+};
+
+struct dmValueSInt16 : public dmValueGeneric<int16_t>
+{
+  dmValueSInt16(int16_t n) : dmValueGeneric<int16_t>(dmDataType::SInt16, n) { }
+};
+
+struct dmValueUInt32 : public dmValueGeneric<uint32_t>
+{
+  dmValueUInt32(uint32_t n) : dmValueGeneric<uint32_t>(dmDataType::UInt32, n) { }
+};
+
+struct dmValueSInt32 : public dmValueGeneric<int32_t>
+{
+  dmValueSInt32(int32_t n) : dmValueGeneric<int32_t>(dmDataType::SInt32, n) { }
+};
+
+struct dmValueUInt64 : public dmValueGeneric<uint64_t>
+{
+  dmValueUInt64(uint64_t n) : dmValueGeneric<uint64_t>(dmDataType::UInt64, n) { }
+};
+
+struct dmValueSInt64 : public dmValueGeneric<int64_t>
+{
+  dmValueSInt64(int64_t n) : dmValueGeneric<int64_t>(dmDataType::SInt64, n) { }
 };
 
 #endif

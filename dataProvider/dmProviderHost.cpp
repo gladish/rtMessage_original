@@ -27,17 +27,6 @@
 
 #include "dmUtility.h"
 
-namespace
-{
-
-  dmNamedValue
-  makeNamedValue(dmPropertyInfo const& propInfo, char const* valueAsString)
-  {
-    // TODO conver to propert type from string
-    return dmNamedValue(propInfo, dmValue(valueAsString));
-  }
-}
-
 class dmProviderHostImpl : public dmProviderHost
 {
 public:
@@ -143,9 +132,9 @@ private:
     else if (op == dmProviderOperation_Set)
     {
       std::string providerName;
-      std::vector<dmNamedValue> params;
-      host->decodeSetRequest(req, providerName, params);
-      host->doSet(providerName, params, results);
+//      std::vector<dmNamedValue> params;
+//       host->decodeSetRequest(req, providerName, params);
+//      host->doSet(providerName, params, results);
     }
 
     rtMessage res;

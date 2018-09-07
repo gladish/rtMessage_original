@@ -1,4 +1,4 @@
-/* Copyright [2017] [Comcast, Corp.]
+/* Copyright [2018] [Comcast, Corp.]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,39 +12,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __DM_QUERY_H__
-#define __DM_QUERY_H__
+#ifndef __DM_INSTANCE_H__
+#define __DM_INSTANCE_H__
 
+#include <vector>
+#include <memory>
+
+#include "dmInstance.h"
+#include "dmProperty.h"
 #include "dmObjectPath.h"
 
-#include <string>
-
-class dmQuery
+class dmInstance
 {
 public:
-  using pointer = std::shared_ptr<dmQuery>;
+  using pointer = std::shared_ptr<dmInstance>;
   using pointer_list = std::vector<pointer>;
 
-  static pointer_list compile(std::string const& s);
+  dmInstance(dmObjectPath const& objectPath, dmProperty::list const& props);
+
+  inline dmProperty::list const& properties() const
+    { return m_properties; }
 
   inline dmObjectPath const& object_path() const
     { return m_object_path; }
 
-  inline bool is_wildcard() const
-    { return m_is_wildcard; }
-
-  inline std::vector<std::string> const& property_list() const
-    { return m_property_list; }
+  dmProperty property(std::string const& name) const;
 
 private:
-  dmQuery(std::string const& s);
-  void combine(pointer const& other);
-
-private:
-  bool m_is_wildcard;
-  std::string m_query_string;
   dmObjectPath m_object_path;
-  std::vector<std::string> m_property_list;
+  dmProperty::list m_properties;
 };
 
 #endif

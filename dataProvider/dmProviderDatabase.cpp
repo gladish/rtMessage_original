@@ -45,12 +45,14 @@ namespace
   dmDatabase model_db;
   dmDatabase model_roots;
 
+#if 0
   bool matches_object(char const* query, char const* obj)
   {
     char const* p = strrchr(query, '.');
     int n = static_cast<int>((intptr_t) p - (intptr_t) query);
     return strncmp(query, obj, n) == 0;
   }
+#endif
 
 }
 
@@ -132,7 +134,7 @@ public:
         if (param != nullptr && value != nullptr)
         {
           dmPropertyInfo propInfo = m_providerInfo->getPropertyInfo(param);
-          m_results.addValue(propInfo, dmValue(value));
+          // m_results.addValue(propInfo, dmValue(value));
         }
 
         if(index > 0)

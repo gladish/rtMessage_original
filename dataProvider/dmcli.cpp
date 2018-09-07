@@ -19,7 +19,10 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <rtLog.h>
+
 #include "dmClient.h"
+#include "dmModelDatabase.h"
 
 void print_help()
 {
@@ -38,6 +41,7 @@ void print_help()
   printf("\n");
 }
 
+#if 0
 //for non-list query, expect a single onResult or onError
 //for lists, 1 query per list item is made so expect onResult or onError for each item in the list
 class Notifier : public dmClientNotifier
@@ -70,6 +74,7 @@ public:
     std::cout << std::endl << "    Error " << status << ": " << message << std::endl;
   }
 };
+#endif
 
 void splitParams(std::string const& params, std::vector<std::string>& tokens)
 {
@@ -101,8 +106,8 @@ void splitParams(std::string const& params, std::vector<std::string>& tokens)
 int main(int argc, char *argv[])
 {
   int exit_code = 0;
-  std::string param_list;
-  bool recursive = false;
+  std::string query;
+  int depth = 1;
   rtLogLevel log_level = RT_LOG_FATAL;
 
   #ifdef DEFAULT_DATAMODELDIR
@@ -111,7 +116,7 @@ int main(int argc, char *argv[])
   std::string datamode_dir;
   #endif
 
-  dmProviderOperation op = dmProviderOperation_Get;
+  dmOperation op = dmOperation::GetInstance;
 
   if (argc == 1)
   {
@@ -145,17 +150,17 @@ int main(int argc, char *argv[])
         break;
 
       case 'g':
-        param_list = optarg;
-        op = dmProviderOperation_Get;
+        query = optarg;
+        op = dmOperation::GetInstance;
         break;
 
       case 's':
-        param_list = optarg;
-        op = dmProviderOperation_Set;
+        query = optarg;
+        op = dmOperation::SetInstance;
         break;
 
       case 'r':
-        recursive = true;
+        depth = static_cast<int>(strtol(optarg, NULL, 10));
         break;
 
       case 'h':
@@ -176,25 +181,21 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (param_list.empty())
+  if (query.empty())
   {
-    printf("\nNo parameter list found\n");
+    printf("\nMust provide a query\n");
     print_help();
     exit(1);
   }
 
-  dmClient* client = dmClient::create(datamodel_dir.c_str(), log_level);
+  rtLog_SetLevel(log_level);
 
-  std::vector<std::string> tokens;
-  splitParams(param_list, tokens);
+  dmModelDatabase::initialize(datamodel_dir);
 
-  for(auto token: tokens)
-  {
-    Notifier notifier;
-    client->runQuery(op, token, recursive, &notifier);
-  }
+  std::shared_ptr<dmClient> client(new dmClient());
 
-  dmClient::destroy(client);
+  // TODO: use Notified like before to get results as they're received
+  dmInstance::pointer_list instances = client->execQuery(op, query);
 
   return exit_code;
 }

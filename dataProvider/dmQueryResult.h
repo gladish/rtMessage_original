@@ -15,7 +15,7 @@
 #ifndef __DM_QUERY_RESULT_H__
 #define __DM_QUERY_RESULT_H__
 
-#include "dmValue.h"
+#include "dmProperty.h"
 #include "dmPropertyInfo.h"
 
 #include <vector>
@@ -29,11 +29,11 @@ class dmQueryResult
 public:
   struct Param
   {
-    Param(int code, char const* msg, dmValue const& val, dmPropertyInfo const& info);
+    Param(int code, char const* msg, dmProperty const& val, dmPropertyInfo const& info);
 
     int StatusCode;
     std::string StatusMessage;
-    dmValue Value;
+    // dmProperty Value;
     dmPropertyInfo Info;
     std::string fullName;
   };
@@ -44,7 +44,7 @@ public:
   void merge(dmQueryResult const& resuls);
   void setStatus(int status);
   void setStatusMsg(std::string statusmsg);
-  void addValue(dmPropertyInfo const& prop, dmValue const& val, 
+  void addValue(dmPropertyInfo const& prop, dmProperty const& val, 
     int code = 0, char const* message = nullptr);
 
   inline int status() const

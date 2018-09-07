@@ -12,35 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "dmValue.h"
+#ifndef __DM_INSTANCE_PROVIDER_H__
+#define __DM_INSTANCE_PROVIDER_H__
 
-dmValue::~dmValue()
+#include "dmObjectPath.h"
+#include "dmInstance.h"
+
+class dmInstanceProvider
 {
-}
+public:
+  using pointer = std::shared_ptr<dmInstanceProvider>;
 
-time_t
-dmDateTime::timeFromString(std::string const& s)
-{
-  // TODO
-  return 0;
-}
+  virtual dmObjectPath::list enumerateInstanceNames(dmObjectPath const& path) = 0;
 
-std::string
-dmDateTime::to_string() const
-{
-  char buff[256];
-  memset(buff, 0, sizeof(buff));
+  virtual dmInstance::pointer getInstance(dmObjectPath const& path,
+    std::vector<std::string> const& propertyList = std::vector<std::string>()) = 0;
+};
 
-  // http://wbemservices.sourceforge.net/javadoc/api/javax/cim/CIMDateTime.html
-  // for format
-  struct tm* t = localtime(&m_value);
-  size_t n = strftime(buff, sizeof(buff), "YYYY", t);
-
-  return std::string(buff);
-}
-
-std::string
-dmObjectReference::to_string() const
-{
-  return m_value;
-}
+#endif

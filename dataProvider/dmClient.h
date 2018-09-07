@@ -15,32 +15,29 @@
 #ifndef __DM_CLIENT_H__
 #define __DM_CLIENT_H__
 
-#include "dmQueryResult.h"
-#include "dmProviderOperation.h"
-#include "rtLog.h"
+#include "dmInstance.h"
+#include "dmQuery.h"
+#include "dmOperation.h"
 
-class dmProviderProxy
-{
-public:
-private:
-};
-
-class dmClientNotifier
-{
-public:
-  virtual void onResult(const dmQueryResult& result) = 0;//1 onResult for non list query.  1 for each list item in a list query.
-  virtual void onError(int status, std::string const& message) = 0;//1 onError if error for non list, 1 for each list item query that fails.
-};
 
 class dmClient
 {
 public:
-  virtual ~dmClient() { }
-  virtual bool runQuery(dmProviderOperation operation, std::string const& parameter, bool recursive, dmClientNotifier* notifier) = 0;
+  dmClient();
 
-  static dmClient* create(std::string const& datamodelDir, rtLogLevel logLevel = RT_LOG_WARN);
-  static void destroy(dmClient* client);
+  void close();
+
+  dmInstance::pointer getInstance(
+    dmObjectPath const& name,
+    std::vector<std::string> const& propertyList = std::vector<std::string>());
+
+  std::vector<dmObjectPath> enumerateInstanceNames(
+    dmObjectPath const& path);
+
+  dmInstance::pointer_list execQuery(dmOperation op, std::string const& query);
+
 private:
+  dmInstance::pointer_list execQueryGetInstance(dmQuery const& q);
 };
 
 

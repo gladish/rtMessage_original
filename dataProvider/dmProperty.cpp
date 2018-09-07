@@ -1,4 +1,4 @@
-/* Copyright [2017] [Comcast, Corp.]
+/* Copyright [2018] [Comcast, Corp.]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,35 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "dmValue.h"
+#include "dmProperty.h"
 
-dmValue::~dmValue()
+dmProperty::dmProperty(std::string const& name, dmValue::pointer const& value, bool isKey)
+  : m_name(name)
+  , m_value(value)
+  , m_is_key(isKey)
 {
-}
-
-time_t
-dmDateTime::timeFromString(std::string const& s)
-{
-  // TODO
-  return 0;
-}
-
-std::string
-dmDateTime::to_string() const
-{
-  char buff[256];
-  memset(buff, 0, sizeof(buff));
-
-  // http://wbemservices.sourceforge.net/javadoc/api/javax/cim/CIMDateTime.html
-  // for format
-  struct tm* t = localtime(&m_value);
-  size_t n = strftime(buff, sizeof(buff), "YYYY", t);
-
-  return std::string(buff);
-}
-
-std::string
-dmObjectReference::to_string() const
-{
-  return m_value;
 }

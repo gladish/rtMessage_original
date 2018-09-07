@@ -63,7 +63,7 @@ dmQueryResult::setStatusMsg(std::string statusmsg)
 }
 
 void
-dmQueryResult::addValue(dmPropertyInfo const& prop, dmValue const& val, int code, 
+dmQueryResult::addValue(dmPropertyInfo const& prop, dmProperty const& val, int code, 
   char const* message)
 {
   m_status = code;
@@ -81,7 +81,7 @@ void dmQueryResult::updateFullNames()
       param.fullName = param.Info.fullName();
 }
 
-dmQueryResult::Param::Param(int code, char const* msg, dmValue const& val, dmPropertyInfo const& info)
+dmQueryResult::Param::Param(int code, char const* msg, dmProperty const& val, dmPropertyInfo const& info)
   : StatusCode(code)
   , Value(val)
   , Info(info)

@@ -12,35 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "dmValue.h"
+#ifndef __DM_OPERATION_H__
+#define __DM_OPERATION_H__
 
-dmValue::~dmValue()
+enum class dmOperation
 {
-}
+  GetInstance,
+  SetInstance,
+  EnumInstances,
+  EnumInstanceNames,
+  CreateInstance
+};
 
-time_t
-dmDateTime::timeFromString(std::string const& s)
-{
-  // TODO
-  return 0;
-}
-
-std::string
-dmDateTime::to_string() const
-{
-  char buff[256];
-  memset(buff, 0, sizeof(buff));
-
-  // http://wbemservices.sourceforge.net/javadoc/api/javax/cim/CIMDateTime.html
-  // for format
-  struct tm* t = localtime(&m_value);
-  size_t n = strftime(buff, sizeof(buff), "YYYY", t);
-
-  return std::string(buff);
-}
-
-std::string
-dmObjectReference::to_string() const
-{
-  return m_value;
-}
+#endif
