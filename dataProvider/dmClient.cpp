@@ -44,11 +44,11 @@ dmInstance::pointer_list
 dmClient::execQueryGetInstance(dmQuery const& q)
 {
   dmInstanceProvider::pointer provider = dmModelDatabase::instance()
-    .get_provider(q.object_path().object_name(), true);
+    .get_provider(q.object_path().objectName(), true);
 
   if (!provider)
   {
-    rtLog_Warn("failed to get provider for object path:%s", q.object_path().to_string().c_str());
+    rtLog_Warn("failed to get provider for object path:%s", q.object_path().toString().c_str());
     return dmInstance::pointer_list();
   }
 

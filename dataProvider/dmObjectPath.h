@@ -27,27 +27,28 @@ public:
   using list = std::vector<dmObjectPath>;
 
   dmObjectPath();
-  dmObjectPath(std::string const& object_name, dmProperty::pointer const& alias);
+  dmObjectPath(std::string const& object_name, dmProperty::list const& keys
+     = dmProperty::list());
 
-  inline void set_object_name(std::string const& object_name)
+  inline void setObjectName(std::string const& object_name)
     { m_object_name = object_name; }
 
-  inline void set_alias(dmProperty::pointer const& alias)
-    { m_alias = alias; }
+  inline void addKey(dmProperty const& k)
+    { m_keys.push_back(k); }
 
-  inline std::string const& object_name() const
+  inline std::string const& objectName() const
     { return m_object_name; }
 
-  inline dmProperty::pointer key() const
-    { return m_alias; }
+  inline dmProperty::list const& keys() const
+    { return m_keys; }
 
-  std::string to_string() const;
+  std::string toString() const;
 
-  static dmObjectPath from_string(std::string const& s);
+  static dmObjectPath fromString(std::string const& s);
 
 private:
   std::string m_object_name;
-  dmProperty::pointer m_alias;
+  dmProperty::list m_keys;
 };
 
 #endif

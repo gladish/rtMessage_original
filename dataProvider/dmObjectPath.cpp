@@ -35,7 +35,7 @@ dmObjectPath::dmObjectPath()
 }
 
 dmObjectPath
-dmObjectPath::from_string(std::string const& objectPath)
+dmObjectPath::fromString(std::string const& objectPath)
 {
   dmObjectPath object_path;
 
@@ -79,14 +79,14 @@ dmObjectPath::from_string(std::string const& objectPath)
   return object_path;
 }
 
-dmObjectPath::dmObjectPath(std::string const& object_name, dmProperty::pointer const& alias)
+dmObjectPath::dmObjectPath(std::string const& object_name, dmProperty::list const& keys)
   : m_object_name(object_name)
-  , m_alias(alias)
+  , m_keys(keys)
 {
 }
 
 std::string
-dmObjectPath::to_string() const
+dmObjectPath::toString() const
 {
   std::stringstream buff;
   buff << m_object_name;

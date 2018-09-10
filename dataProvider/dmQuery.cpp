@@ -44,13 +44,13 @@ dmQuery::dmQuery(std::string const& query)
     t = query;
   }
 
-  m_object_path = dmObjectPath::from_string(t);
+  m_object_path = dmObjectPath::fromString(t);
 }
 
 void
 dmQuery::combine(dmQuery::pointer const& other)
 {
-  assert(this->m_object_path.object_name() == other->m_object_path.object_name());
+  assert(this->m_object_path.objectName() == other->m_object_path.objectName());
   m_property_list.insert(m_property_list.end(),
     other->m_property_list.begin(), other->m_property_list.end());
 }
