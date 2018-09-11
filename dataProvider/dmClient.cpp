@@ -35,21 +35,21 @@ public:
     delete m_db;
   }
 
-  bool runQuery(dmProviderOperation operation, std::string const& parameter, bool recursive, dmClientNotifier* notifier)
+  bool runGet(std::string const& parameter, bool recursive, dmClientNotifier* notifier)
   {
-    rtLog_Warn("runQuery %s", parameter.c_str());
     bool isWildcard = false;
     bool isList = false;
     bool isListItem;
     std::string objectName(parameter);
     std::shared_ptr<dmProviderInfo> providerInfo;
+
     if (dmUtility::isWildcard(objectName.c_str()))
     {
       rtLog_Warn("runQuery isWildcard %s", objectName.c_str());
       isWildcard = true;
       //objectName = dmUtility::trimWildcard(objectName);
 
-      providerInfo = m_db->getProviderByParamterName(parameter,&isListItem);
+      providerInfo = m_db->getProviderByPropertyName(parameter,&isListItem);
       if(!providerInfo)
       {
         rtLog_Warn("runQuery no providerinfo");
@@ -68,7 +68,7 @@ public:
       rtLog_Warn("dmcli_get list=%s parent=%s", list_name.c_str(), parent_name.c_str());
 
       std::string num_entries_param = list_name + "NumberOfEntries";
-      if(!runOneQuery(operation, num_entries_param, nullptr, &value))
+      if(!runOneQuery(dmProviderOperation_Get, num_entries_param, nullptr, &value))
       {
         notifier->onError(RT_FAIL, "dmcli_get list number query failed");
         return false;
@@ -77,7 +77,7 @@ public:
       rtLog_Warn("dmcli_get list num_entries=%d", num_entries);
 
       std::string alias_entries_param = list_name + "IdsOfEntries";
-      if(!runOneQuery(operation, alias_entries_param , nullptr, &value))
+      if(!runOneQuery(dmProviderOperation_Get, alias_entries_param , nullptr, &value))
       {
 
         notifier->onError(RT_FAIL, "dmcli_get list entry query failed");
@@ -102,19 +102,19 @@ public:
         std::stringstream list_item_param;
         list_item_param << list_name << "." << out[i] << ".";
         std::vector<dmQueryResult::Param> res;
-        if(!runOneQuery(operation, list_item_param.str(), notifier))
+        if(!runOneQuery(dmProviderOperation_Get, list_item_param.str(), notifier))
           success = false;//if only a list item query fails, we keep going but still at end, return false
 
-        if(operation == dmProviderOperation_Get && recursive)
+        if(recursive)
         {
-          std::shared_ptr<dmProviderInfo> objectInfo = m_db->getProviderByParamterName(list_item_param.str(), &isListItem); 
+          std::shared_ptr<dmProviderInfo> objectInfo = m_db->getProviderByPropertyName(list_item_param.str()); 
           rtLog_Warn("dmcli_get recurse parameter=%s objectName=%s", list_item_param.str().c_str(), objectInfo->objectName().c_str());
           for(size_t i = 0; i < objectInfo->getChildren().size(); ++i)
           {
             std::string childParameter = list_item_param.str().c_str() + dmUtility::trimPropertyName(objectInfo->getChildren()[i]->objectName()) + ".";
             rtLog_Warn("dmcli_get childObjectName %s", childParameter.c_str());
 
-            success = runQuery(operation, childParameter, recursive, notifier);
+            success = runQuery(dmProviderOperation_Get, childParameter, recursive, notifier);
           }
         }
       }
@@ -122,21 +122,35 @@ public:
     }
     else
     {
-      bool success = runOneQuery(operation, parameter, notifier);
+      bool success = runOneQuery(dmProviderOperation_Get, parameter, notifier);
 
-      if(operation == dmProviderOperation_Get && recursive)
+      if(recursive)
       {
-        std::shared_ptr<dmProviderInfo> objectInfo = m_db->getProviderByParamterName(parameter, &isListItem); 
+        std::shared_ptr<dmProviderInfo> objectInfo = m_db->getProviderByPropertyName(parameter); 
         rtLog_Warn("dmcli_get recurse %s", objectInfo->objectName().c_str());
         for(size_t i = 0; i < objectInfo->getChildren().size(); ++i)
         {
           std::string childParameter = dmUtility::trimProperty(parameter) + "." + dmUtility::trimPropertyName(objectInfo->getChildren()[i]->objectName()) + ".";
           rtLog_Warn("dmcli_get childObjectName %s", childParameter.c_str());
 
-          success = runQuery(operation, childParameter, recursive, notifier);
+          success = runQuery(dmProviderOperation_Get, childParameter, recursive, notifier);
         }
       }
     }
+  }
+
+  bool runSet(std::string const& parameter, dmClientNotifier* notifier)
+  {
+    return runOneQuery(dmProviderOperation_Set, parameter, notifier);
+  }
+
+  bool runQuery(dmProviderOperation operation, std::string const& parameter, bool recursive, dmClientNotifier* notifier)
+  {
+    rtLog_Warn("runQuery %s", parameter.c_str());
+    if(operation == dmProviderOperation_Get)
+      runGet(parameter,recursive,notifier);
+    else
+      runSet(parameter,notifier);
   }
 
 private:

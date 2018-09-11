@@ -19,11 +19,11 @@
 #include <rtError.h>
 #include <rtLog.h>
 
-dmProvider::dmProvider()
+dmProvider::dmProvider() : m_isTransaction(false)
 {
 }
 
-dmProvider::dmProvider(const char* alias)
+dmProvider::dmProvider(const char* alias) : m_isTransaction(false)
 {
   m_alias = alias;
 }
@@ -76,7 +76,12 @@ dmProvider::doSet(std::vector<dmNamedValue> const& params, std::vector<dmQueryRe
 {
   dmQueryResult temp;
   temp.setStatus(RT_PROP_NOT_FOUND);
-
+  bool doTransaction(params.size() > 1);
+  if(doTransaction)
+  {
+    m_isTransaction = true;
+    startTransaction();
+  }
   for (auto const& value : params)
   {
     auto itr = m_provider_functions.find(value.name());
@@ -101,6 +106,11 @@ dmProvider::doSet(std::vector<dmNamedValue> const& params, std::vector<dmQueryRe
     }
 
     temp.clear();
+  }
+  if(doTransaction)
+  {
+    endTransaction();
+    m_isTransaction = false;
   }
 }
 

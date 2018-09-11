@@ -77,6 +77,37 @@ public:
     return t;
   }
 
+  static std::string trimSetProperty(std::string const &s)
+  {
+    std::string::size_type idx = s.find('=');
+    //check for multi setter in this form Parent.ObjectName={prop1=blah..} 
+    if(idx != std::string::npos && s.length() > idx+1 && s.at(idx+1) == '{' && s.back() == '}')
+      return s.substr(0, idx);
+    else//so must be in form: Parent.ObjectName.PropName=blah
+      return trimProperty(s);
+  }
+
+  static bool parseMultisetValue(std::string const& s, std::vector< std::pair<std::string,std::string> >& nameVals)
+  {
+    if(s.length() < 2 || s.front() != '{' || s.back() != '}')
+      return false;
+    std::string s2 = s;
+    s2.erase(0,1);
+    s2.pop_back();
+    std::vector<std::string> pairs;
+    dmUtility::splitString(s2, ',', pairs);
+    for (std::string const& pair : pairs)
+    {
+      std::vector<std::string> args;
+      dmUtility::splitString(pair, '=', args);
+      if(args.size() == 2)
+        nameVals.push_back(std::make_pair(args[0], args[1]));
+      else
+        rtLog_Debug("Invalide multiset value");
+    }
+    return true;
+  }
+
   static void splitString(std::string const& s, char delim, std::vector<std::string>& out)
   {
     size_t n1 = 0;

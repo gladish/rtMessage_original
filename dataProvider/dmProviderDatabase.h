@@ -31,9 +31,10 @@ public:
 
   dmQuery* createQuery();
   dmQuery* createQuery(dmProviderOperation op, char const* s);
-  std::shared_ptr<dmProviderInfo> getProviderByName(std::string const& s) const;
-  std::shared_ptr<dmProviderInfo> getProviderByObjectName(std::string const& s) const;
-  std::shared_ptr<dmProviderInfo> getProviderByParamterName(std::string const& s, bool* isListItem) const;
+  std::shared_ptr<dmProviderInfo> getProviderByProviderName(std::string const& s) const;
+  std::shared_ptr<dmProviderInfo> getProviderByModelName(std::string const& s) const;
+  std::shared_ptr<dmProviderInfo> getProviderByPropertyName(std::string const& s, bool* isListItem=nullptr) const;
+  std::shared_ptr<dmProviderInfo> getProviderByObjectName(std::string const& s, bool* isListItem=nullptr) const;
 private:
   void loadFromDir(std::string const& dir);
   void loadFile(std::string const& dir, char const* fname);

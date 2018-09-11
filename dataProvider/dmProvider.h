@@ -45,6 +45,10 @@ protected:
   void onGet(std::string const& propertyName, getter_function func);
   void onSet(std::string const& propertyName, setter_function func);
 
+  virtual void startTransaction(){}
+  virtual void endTransaction(){}
+  bool isTransaction() const 
+    { return m_isTransaction; }
 protected:
   std::string m_name;
   std::string m_alias;
@@ -54,8 +58,8 @@ private:
     getter_function getter;
     setter_function setter;
   };
-
   std::map< std::string, provider_functions > m_provider_functions;
+  bool m_isTransaction;
 };
 
 #endif

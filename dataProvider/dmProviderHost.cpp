@@ -181,8 +181,8 @@ private:
     rtMessage_GetString(item, "name", &propertyName);
 
     rtLog_Debug("decodeGetRequest property name=%s provider=%s\n", (propertyName != nullptr ? propertyName : ""), (providerName != nullptr ? providerName : ""));
-    bool isListItem;
-    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByParamterName(propertyName, &isListItem);
+
+    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByPropertyName(propertyName);
     if (objectInfo)
     {
       rtLog_Debug("decodeGetRequest object found %s", providerName);
@@ -208,45 +208,70 @@ private:
     if (providerName)
       name = providerName;
 
-    // TODO: need to handle multiple sets in single call
-
     rtMessage item;
     rtMessage_GetMessage(req, "params", &item);
 
-    char const* propertyName = nullptr;
-    rtMessage_GetString(item, "name", &propertyName);
+    char const* targetName = nullptr;
+    rtMessage_GetString(item, "name", &targetName);
 
     char const* value = nullptr;
     rtMessage_GetString(item, "value", &value);
 
-    rtLog_Debug("decoderSetRequest property name=%s value=%s\n", (propertyName != nullptr ? propertyName : ""), (value != nullptr ? value : ""));
-
-    bool isListItem;
-    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByParamterName(propertyName, &isListItem);
-    if (objectInfo)
+    if(!value)
     {
-      rtLog_Debug("decodeSetRequest object found %s", propertyName);
+      rtLog_Debug("decodeSetRequest value is null");
+      return;
+    }
 
-      std::string propertyLastName = dmUtility::trimPropertyName(propertyName);
+    size_t len = strlen(value);
 
-      std::vector<dmPropertyInfo> props = objectInfo->properties();
+    if(len == 0)
+    {
+      rtLog_Debug("decodeSetRequest value is empty");
+      return;
+    }
 
-      auto itr = std::find_if(
-        props.begin(),
-        props.end(),
-        [propertyLastName](dmPropertyInfo const& info) { 
-          rtLog_Debug("decodeSetRequest find_if %s compare to %s = %d\n", info.name().c_str(), propertyLastName.c_str(), (int)(info.name() == propertyLastName));
-          return info.name() == propertyLastName; 
-        });
+    rtLog_Debug("decoderSetRequest name=%s value=%s\n", (targetName != nullptr ? targetName : ""), (value != nullptr ? value : ""));
 
-      if (itr != props.end())
-        params.push_back(makeNamedValue(*itr, value));
+    std::vector< std::pair<std::string,std::string> > nameVals;
+    std::shared_ptr<dmProviderInfo> objectInfo;
+
+    //determine if value is a single value or multi-set value, like object={prop1=val1,prop2=val2...}
+    if(dmUtility::parseMultisetValue(value, nameVals))
+    {
+      objectInfo = db->getProviderByObjectName(targetName);//for multi-set the targetName is the object name
     }
     else
     {
-      rtLog_Debug("decodeSetRequest object not found %s", propertyName);
+      objectInfo = db->getProviderByPropertyName(targetName);
+      nameVals.push_back(std::make_pair(dmUtility::trimPropertyName(targetName), value));
     }
 
+    if(objectInfo)
+    {
+      rtLog_Debug("decodeSetRequest object found %s", targetName);
+      std::vector<dmPropertyInfo> props = objectInfo->properties();
+
+      for (auto const& nameVal : nameVals)
+      {
+        std::string propertyName = nameVal.first;
+        auto itr = std::find_if(
+          props.begin(),
+          props.end(),
+          [propertyName](dmPropertyInfo const& info) { 
+            rtLog_Debug("decodeSetRequest find_if %s compare to %s = %d\n", info.name().c_str(), propertyName.c_str(), (int)(info.name() == propertyName));
+            return info.name() == propertyName; 
+          });
+
+        if (itr != props.end())
+          params.push_back(makeNamedValue(*itr, nameVal.second.c_str()));
+      }
+    }
+    else
+    {
+      rtLog_Debug("decodeSetRequest object not found %s", targetName);
+    }
+    
     rtMessage_Release(item);
   }
 
@@ -304,8 +329,7 @@ bool
 dmProviderHost::registerProvider(char const* object, std::unique_ptr<dmProvider> provider)
 {
   bool b = false;
-  bool isListItem;
-  std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByParamterName(std::string(object)+".", &isListItem); 
+  std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByObjectName(std::string(object)); 
   rtLog_Warn("registerProvider fullName=%s instanceName=%s", objectInfo->objectName().c_str(), object);
 
   if (objectInfo)

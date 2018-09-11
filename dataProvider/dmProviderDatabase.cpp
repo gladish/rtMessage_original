@@ -71,17 +71,10 @@ public:
 
   void makeRequest(std::string& topic, std::string& queryString)
   {
-    std::string instanceId;
-    if (dmUtility::isWildcard(m_query.c_str()))
-      instanceId = dmUtility::trimWildcard(m_query);
-    else
-      instanceId = dmUtility::trimProperty(m_query);
-    rtLog_Warn("makeRequest objectId=%s", instanceId.c_str());
-
     rtMessage req;
     rtMessage_Create(&req);
     rtMessage_SetString(req, "method", m_operation.c_str());
-    rtMessage_SetString(req, "provider", instanceId.c_str());
+    rtMessage_SetString(req, "provider", m_instanceName.c_str());
     rtMessage item;
     rtMessage_Create(&item);
     rtMessage_SetString(item, "name", queryString.c_str());
@@ -160,14 +153,7 @@ public:
     }
 
     std::string topic("RDK.MODEL.");
-    std::string instanceId;
-    if (dmUtility::isWildcard(m_query.c_str()))
-      instanceId = dmUtility::trimWildcard(m_query);
-    else
-      instanceId = dmUtility::trimProperty(m_query);
-
-    rtLog_Warn("exec instanceId=%s", instanceId.c_str());
-    topic += instanceId;
+    topic += m_instanceName;
 
     rtLog_Debug("sending dm query : %s on topic :%s", m_query.c_str(), topic.c_str());
 
@@ -182,6 +168,7 @@ public:
     m_operation.clear();
     m_query.clear();
     m_value.clear();
+    m_instanceName.clear();
     m_providerInfo.reset();
   }
 
@@ -193,6 +180,10 @@ public:
       {
         m_operation = "get";
         m_query = s;
+        if (dmUtility::isWildcard(m_query.c_str()))
+          m_instanceName = dmUtility::trimWildcard(m_query);
+        else
+          m_instanceName = dmUtility::trimProperty(m_query);
       }
       break;
       case dmProviderOperation_Set:
@@ -204,6 +195,7 @@ public:
           std::size_t position = data.find("=");
           m_query = data.substr(0, position);
           m_value = data.substr(position+1);
+          m_instanceName = dmUtility::trimSetProperty(data);
         }
         else
         {
@@ -232,6 +224,7 @@ private:
   std::string m_query;
   std::string m_value;
   std::string m_operation;
+  std::string m_instanceName;
   dmProviderDatabase *db;
   std::shared_ptr<dmProviderInfo> m_providerInfo;
 
@@ -242,7 +235,14 @@ private:
 dmProviderDatabase::dmProviderDatabase(std::string const& dir)
   : m_modelDirectory(dir)
 {
-  loadFromDir(dir);
+  const char* modelDirOverride = getenv("DM_DATA_MODEL_DIRECTORY");
+  if(modelDirOverride)
+  {
+    m_modelDirectory = modelDirOverride;
+  }
+  
+  loadFromDir(m_modelDirectory);
+
   buildProviderTree();
 }
 
@@ -332,7 +332,6 @@ dmProviderDatabase::buildProviderTree()
     {
       if(itr2.second->objectName() == parentName)
       {
-rtLog_Warn("adding child %s to %s", itr.second->objectName().c_str(), parentName.c_str());
         itr2.second->addChild(itr.second);
         found = true;
         break;
@@ -378,16 +377,11 @@ dmProviderDatabase::isWritable(char const* param, char const* provider)
 #endif
 
 std::shared_ptr<dmProviderInfo>
-dmProviderDatabase::getProviderByParamterName(std::string const& s, bool* isListItem) const
+dmProviderDatabase::getProviderByObjectName(std::string const& p, bool* isListItem) const
 {
   using namespace std;
-  if(s.length() == 0)
+  if(p.length() == 0)
     return nullptr;
-  std::string p;
-  if (dmUtility::isWildcard(s.c_str()))
-    p = dmUtility::trimWildcard(s);
-  else
-    p = dmUtility::trimProperty(s);
   std::string p2 = p;
   size_t n1 = 0;
   size_t n2 = p.find('.');
@@ -401,7 +395,8 @@ dmProviderDatabase::getProviderByParamterName(std::string const& s, bool* isList
  //   rtLog_Warn("isList=%d", (int)isList);
     if(!isList)
     {
-      *isListItem = false;
+      if(isListItem)
+        *isListItem = false;
       if(!fullName.empty())
         fullName += ".";
       fullName += token;
@@ -422,7 +417,8 @@ dmProviderDatabase::getProviderByParamterName(std::string const& s, bool* isList
     else
     {
       isList = false;
-      *isListItem = true;
+      if(isListItem)
+        *isListItem = true;
     }
     
     if(!instanceName.empty())
@@ -433,12 +429,24 @@ dmProviderDatabase::getProviderByParamterName(std::string const& s, bool* isList
     n1 = n2+1;
     n2 = p.find('.', n1);
   }
-  rtLog_Warn("getProviderByParamterName input=%s output=%s trimmed=%s fullName=%s instanceName=%s", s.c_str(), provider != nullptr ? provider->objectName().c_str() : "null", p2.c_str(),  fullName.c_str(), instanceName.c_str());
+  rtLog_Warn("getProviderByPropertyName input=%s output=%s trimmed=%s fullName=%s instanceName=%s", 
+    p.c_str(), provider != nullptr ? provider->objectName().c_str() : "null", p2.c_str(),  fullName.c_str(), instanceName.c_str());
   return provider;
 }
 
 std::shared_ptr<dmProviderInfo>
-dmProviderDatabase::getProviderByObjectName(std::string const& s) const
+dmProviderDatabase::getProviderByPropertyName(std::string const& s, bool* isListItem) const
+{
+  if(s.length() == 0)
+    return nullptr;
+  if (dmUtility::isWildcard(s.c_str()))
+    return getProviderByObjectName(dmUtility::trimWildcard(s), isListItem);
+  else
+    return getProviderByObjectName(dmUtility::trimProperty(s), isListItem);
+}
+
+std::shared_ptr<dmProviderInfo>
+dmProviderDatabase::getProviderByModelName(std::string const& s) const
 {
   //rtLog_Info("get provider by objectname:%s", s.c_str());
 
@@ -458,7 +466,7 @@ dmProviderDatabase::getProviderByObjectName(std::string const& s) const
 }
 
 std::shared_ptr<dmProviderInfo>
-dmProviderDatabase::getProviderByName(std::string const& s) const
+dmProviderDatabase::getProviderByProviderName(std::string const& s) const
 {
   for (auto itr : model_db)
   {
@@ -520,14 +528,12 @@ dmProviderDatabase::createQuery(dmProviderOperation op, char const* queryString)
   if (!queryString)
     return nullptr;
 
-  std::string objectName(queryString);
-  if (dmUtility::isWildcard(objectName.c_str()))
-    objectName = dmUtility::trimWildcard(objectName);
-  else
-    objectName = dmUtility::trimProperty(objectName);
+  std::shared_ptr<dmProviderInfo> providerInfo;
 
-  bool isListItem;
-  std::shared_ptr<dmProviderInfo> providerInfo = getProviderByParamterName(queryString, &isListItem);
+  if(op == dmProviderOperation_Get)
+    providerInfo = getProviderByPropertyName(queryString);
+  else
+    providerInfo = getProviderByObjectName(dmUtility::trimSetProperty(queryString));
 
   if (!providerInfo)
   {
