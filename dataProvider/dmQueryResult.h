@@ -35,7 +35,6 @@ public:
     std::string StatusMessage;
     dmValue Value;
     dmPropertyInfo Info;
-    std::string fullName;
   };
 
   dmQueryResult();
@@ -43,9 +42,10 @@ public:
   void clear();
   void merge(dmQueryResult const& resuls);
   void setStatus(int status);
-  void setStatusMsg(std::string statusmsg);
+  void setStatusMsg(std::string const& statusmsg);
   void addValue(dmPropertyInfo const& prop, dmValue const& val, 
     int code = 0, char const* message = nullptr);
+  void setObjectName(std::string const& name);
 
   inline int status() const
     { return m_status; }
@@ -56,19 +56,13 @@ public:
   inline std::string const& statusMsg() const
     { return m_statusMsg; }
 
-  //basic list support supporting a single list object as the last object in the param full name
-  inline int const& index() const
-    { return m_index; }
-
-  inline void setIndex(int index)
-    { m_index = index; }
-
-  void updateFullNames();
+  inline std::string const& objectName() const
+    { return m_objectName; }
 private:
   int m_status;
   std::vector<Param> m_values;
   std::string m_statusMsg;
-  int m_index;
+  std::string m_objectName;
 };
 
 #endif

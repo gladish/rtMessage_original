@@ -29,9 +29,6 @@ public:
   dmProvider(const char* alias);
   virtual ~dmProvider();
 
-  inline std::string const& name() const
-    { return m_name; }
-
   virtual void doGet(std::vector<dmPropertyInfo> const& params, std::vector<dmQueryResult>& result);
   virtual void doSet(std::vector<dmNamedValue> const& params, std::vector<dmQueryResult>& result);
 
@@ -49,9 +46,6 @@ protected:
   virtual void endTransaction(){}
   bool isTransaction() const 
     { return m_isTransaction; }
-protected:
-  std::string m_name;
-  std::string m_alias;
 private:
   struct provider_functions
   {

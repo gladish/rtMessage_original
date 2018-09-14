@@ -23,11 +23,6 @@ dmProvider::dmProvider() : m_isTransaction(false)
 {
 }
 
-dmProvider::dmProvider(const char* alias) : m_isTransaction(false)
-{
-  m_alias = alias;
-}
-
 dmProvider::~dmProvider()
 {
 }

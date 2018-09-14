@@ -4,6 +4,7 @@
   "is_list" : true,
   "properties":
     [
+      {"name": "Alias", "type": "string", "optional": false, "writable": false, "version": "2.0"},
       {"name": "AdapterNumberOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
       {"name": "AdapterIdsOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
       {"name": "InterfaceNumberOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},

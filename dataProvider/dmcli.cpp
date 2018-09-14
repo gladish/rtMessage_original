@@ -48,9 +48,11 @@ public:
     size_t maxParamLength = 0;
     for (auto const& param : result.values())
     {
-        if (param.fullName.length() > maxParamLength)
-          maxParamLength = param.fullName.length();
+      size_t len = param.Info.name().length();
+        if (len > maxParamLength)
+          maxParamLength = len;
     }
+    maxParamLength += result.objectName().length();
 
     std::cout << std::endl;
     for (auto const& param: result.values())
@@ -58,7 +60,7 @@ public:
       std::cout << "    ";
       std::cout.width(maxParamLength);
       std::cout << std::left;
-      std::cout << param.fullName;
+      std::cout << result.objectName() + "." + param.Info.name();
       std::cout << " = ";
       std::cout << param.Value.toString();
       std::cout << std::endl;

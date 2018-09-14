@@ -180,14 +180,20 @@ private:
     char const* propertyName = nullptr;
     rtMessage_GetString(item, "name", &propertyName);
 
-    rtLog_Debug("decodeGetRequest property name=%s provider=%s\n", (propertyName != nullptr ? propertyName : ""), (providerName != nullptr ? providerName : ""));
+    bool isWildcard = dmUtility::isWildcard(propertyName);
+    std::string objectName = isWildcard ? dmUtility::trimWildcard(propertyName) : dmUtility::trimProperty(propertyName);
 
-    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByPropertyName(propertyName);
+    rtLog_Debug("decodeGetRequest property=%s\n", (propertyName != nullptr ? propertyName : ""));
+
+    if(name != objectName)
+      rtLog_Warn("provider/property name missmatch %s, %s", name.c_str(), objectName.c_str());
+
+    std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByObjectName(objectName);
     if (objectInfo)
     {
       rtLog_Debug("decodeGetRequest object found %s", providerName);
 
-      if (dmUtility::isWildcard(propertyName))
+      if (isWildcard)
         params = objectInfo->properties();
       else
         params.push_back(objectInfo->getPropertyInfo(propertyName));
@@ -302,7 +308,6 @@ private:
         rtMessage_SetString(msg, "value", param.Value.toString().c_str());
       }
 
-      rtMessage_SetInt32(msg, "index", result.index());
       rtMessage_SetInt32(msg, "status", statusCode);
       rtMessage_SetString(msg, "status_msg", statusMessage.c_str());
       rtMessage_AddMessage(res, "result", msg);

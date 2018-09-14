@@ -27,7 +27,6 @@ static const int kDefaultQueryResult = RT_OK;
 
 dmQueryResult::dmQueryResult()
   : m_status(kDefaultQueryResult)
-  , m_index(-1)
 {
 }
 
@@ -37,7 +36,6 @@ dmQueryResult::clear()
   m_status = kDefaultQueryResult;
   m_values.clear();
   m_statusMsg.clear();
-  m_index = -1;
 }
 
 void
@@ -57,9 +55,15 @@ dmQueryResult::setStatus(int status)
 }
 
 void
-dmQueryResult::setStatusMsg(std::string statusmsg)
+dmQueryResult::setStatusMsg(std::string const& statusmsg)
 {
    m_statusMsg = statusmsg;
+}
+
+void
+dmQueryResult::setObjectName(std::string const& name)
+{
+  m_objectName = name;
 }
 
 void
@@ -73,12 +77,6 @@ dmQueryResult::addValue(dmPropertyInfo const& prop, dmValue const& val, int code
   {
     setStatusMsg(std::string(message));
   }
-}
-
-void dmQueryResult::updateFullNames()
-{
-  for (auto& param : m_values)
-      param.fullName = param.Info.fullName();
 }
 
 dmQueryResult::Param::Param(int code, char const* msg, dmValue const& val, dmPropertyInfo const& info)

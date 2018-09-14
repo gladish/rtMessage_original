@@ -105,6 +105,17 @@ public:
       {
         rtMessage item;
         rtMessage_GetMessageItem(res, "result", i, &item);
+
+#if 0 //to log the whole message
+        char* pBuff = nullptr;
+        uint32_t nBuff;
+        rtMessage_ToString(item, &pBuff, &nBuff);
+        if(pBuff)
+        {
+          rtLog_Warn("MSG=%s", pBuff);
+          free(pBuff);
+        }
+#endif
         int status = 0;
         int index = -1;
         char const* param = nullptr;
@@ -115,8 +126,6 @@ public:
           rtLog_Debug("failed to get 'name' from paramter");
         if (rtMessage_GetString(item, "value", &value) != RT_OK)
           rtLog_Debug("failed to get 'value' from parameter");
-        if (rtMessage_GetInt32(item, "index", &index) != RT_OK)
-          rtLog_Error("failed to get 'index' from response");
         if (rtMessage_GetInt32(item, "status", &status) != RT_OK)
           rtLog_Error("failed to get 'status' from response");
         if (rtMessage_GetString(item, "status_msg", &status_msg) != RT_OK)
@@ -128,16 +137,13 @@ public:
           m_results.addValue(propInfo, dmValue(value));
         }
 
-        if(index > 0)
-          m_results.setIndex(index);
-
         if(status != 0)
           m_results.setStatus(status);
         if(status_msg != nullptr)
           m_results.setStatusMsg(status_msg);
       }
 
-      m_results.updateFullNames();
+      m_results.setObjectName(m_instanceName);
 
       rtMessage_Release(res);
       rtMessage_Release(req);
