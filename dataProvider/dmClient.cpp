@@ -37,6 +37,7 @@ public:
 
   bool runGet(std::string const& parameter, bool recursive, dmClientNotifier* notifier)
   {
+    bool success = true;
     bool isWildcard = false;
     bool isList = false;
     bool isListItem;
@@ -90,13 +91,13 @@ public:
       std::vector<std::string> out;
       dmUtility::splitString(entries, ',', out);
       rtLog_Warn("dmcli_get split=%d", (int)out.size());
-      if(out.size() != num_entries)
+      if((int)out.size() != num_entries)
       {
         notifier->onError(RT_FAIL, "dmcli_get list failed: size mismatch");
         return false;
       }
 
-      bool success = true;
+      success = true;
       for(int i = 0; i < num_entries; ++i)
       {
         std::stringstream list_item_param;
@@ -111,18 +112,17 @@ public:
           rtLog_Warn("dmcli_get recurse parameter=%s objectName=%s", list_item_param.str().c_str(), objectInfo->objectName().c_str());
           for(size_t i = 0; i < objectInfo->getChildren().size(); ++i)
           {
-            std::string childParameter = list_item_param.str().c_str() + dmUtility::trimPropertyName(objectInfo->getChildren()[i]->objectName()) + ".";
+            std::string childParameter = list_item_param.str().c_str() + dmUtility::trimPropertyName(objectInfo->getChildren()[i].lock()->objectName()) + ".";
             rtLog_Warn("dmcli_get childObjectName %s", childParameter.c_str());
 
             success = runQuery(dmProviderOperation_Get, childParameter, recursive, notifier);
           }
         }
       }
-      return success;
     }
     else
     {
-      bool success = runOneQuery(dmProviderOperation_Get, parameter, notifier);
+      success = runOneQuery(dmProviderOperation_Get, parameter, notifier);
 
       if(recursive)
       {
@@ -130,13 +130,14 @@ public:
         rtLog_Warn("dmcli_get recurse %s", objectInfo->objectName().c_str());
         for(size_t i = 0; i < objectInfo->getChildren().size(); ++i)
         {
-          std::string childParameter = dmUtility::trimProperty(parameter) + "." + dmUtility::trimPropertyName(objectInfo->getChildren()[i]->objectName()) + ".";
+          std::string childParameter = dmUtility::trimProperty(parameter) + "." + dmUtility::trimPropertyName(objectInfo->getChildren()[i].lock()->objectName()) + ".";
           rtLog_Warn("dmcli_get childObjectName %s", childParameter.c_str());
 
           success = runQuery(dmProviderOperation_Get, childParameter, recursive, notifier);
         }
       }
     }
+    return success;
   }
 
   bool runSet(std::string const& parameter, dmClientNotifier* notifier)
@@ -148,9 +149,9 @@ public:
   {
     rtLog_Warn("runQuery %s", parameter.c_str());
     if(operation == dmProviderOperation_Get)
-      runGet(parameter,recursive,notifier);
+      return runGet(parameter,recursive,notifier);
     else
-      runSet(parameter,notifier);
+      return runSet(parameter,notifier);
   }
 
 private:

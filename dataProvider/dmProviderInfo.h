@@ -47,27 +47,15 @@ public:
   void setIsList(bool b)
     { m_isList = b; }
 
-  std::shared_ptr<dmProviderInfo> getParent()
+  std::weak_ptr<dmProviderInfo> getParent()
   {
     return m_parent;
   }
 
-  void setParent(std::shared_ptr<dmProviderInfo> parent)
-  {
-    m_parent = parent;
-  }
-
-  std::vector< std::shared_ptr<dmProviderInfo> > const& getChildren()
+  std::vector< std::weak_ptr<dmProviderInfo> > const& getChildren()
   {
     return m_children;
   }
-
-  void addChild(std::shared_ptr<dmProviderInfo> child)
-  {
-    rtLog_Debug("addChild(%p) %s to parent %s", this, child->objectName().c_str(), objectName().c_str());
-    m_children.push_back(child);
-    child->setParent(std::shared_ptr<dmProviderInfo>(this));
-  }  
 
 private:
   dmProviderInfo();
@@ -80,7 +68,7 @@ private:
   std::string m_providerName;
   std::vector<dmPropertyInfo> m_props;
   bool m_isList;
-  std::shared_ptr<dmProviderInfo> m_parent;
-  std::vector< std::shared_ptr<dmProviderInfo> > m_children;
+  std::weak_ptr<dmProviderInfo> m_parent;
+  std::vector< std::weak_ptr<dmProviderInfo> > m_children;
 };
 #endif

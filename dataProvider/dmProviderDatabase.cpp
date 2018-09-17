@@ -322,7 +322,7 @@ void printTree(std::shared_ptr<dmProviderInfo> p, int curdep)
   rtLog_Warn("tree(%d): %s children=%d", curdep, buffer, (int)p->getChildren().size());
   curdep++;
   for(size_t i = 0; i < p->getChildren().size(); ++i)
-    printTree(p->getChildren()[i],curdep);  
+    printTree(p->getChildren()[i].lock(),curdep);  
 }
 
 void
@@ -338,7 +338,8 @@ dmProviderDatabase::buildProviderTree()
     {
       if(itr2.second->objectName() == parentName)
       {
-        itr2.second->addChild(itr.second);
+        itr2.second->m_children.push_back(itr.second);
+        itr.second->m_parent = itr2.second;
         found = true;
         break;
       }
