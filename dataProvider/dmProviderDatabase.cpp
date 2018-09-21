@@ -84,6 +84,7 @@ public:
     rtMessage res;
 
     rtError err = rtConnection_SendRequest(m_con, req, topic.c_str(), &res, 2000);
+#if 0
     if ((err == RT_OK) && rtLog_IsLevelEnabled(RT_LOG_DEBUG))
     {
       char* p = nullptr;
@@ -95,7 +96,7 @@ public:
         free(p);
       }
     }
-
+#endif
     if (err == RT_OK)
     {
       int32_t len;
@@ -288,7 +289,7 @@ dmProviderDatabase::loadFile(std::string const& dir, char const* fname)
   file.open(path.c_str(), std::ifstream::in);
   if (!file.is_open())
   {
-    rtLog_Warn("failed to open fie. %s. %s", fname, strerror(errno));
+    rtLog_Warn("failed to open file. %s. %s", fname, strerror(errno));
     return;
   }
 
@@ -319,7 +320,7 @@ void printTree(std::shared_ptr<dmProviderInfo> p, int curdep)
     return;
   char buffer[200];
   sprintf(buffer, "%*.s%s", curdep, "  ", p->objectName().c_str());
-  rtLog_Warn("tree(%d): %s children=%d", curdep, buffer, (int)p->getChildren().size());
+  rtLog_Info("tree(%d): %s children=%d", curdep, buffer, (int)p->getChildren().size());
   curdep++;
   for(size_t i = 0; i < p->getChildren().size(); ++i)
     printTree(p->getChildren()[i].lock(),curdep);  
@@ -330,7 +331,7 @@ dmProviderDatabase::buildProviderTree()
 {
   for (auto itr : model_db)
   {
-    rtLog_Warn("buildProviderTree %s isList=%d", itr.second->objectName().c_str(), (int)itr.second->isList());
+    rtLog_Debug("buildProviderTree %s isList=%d", itr.second->objectName().c_str(), (int)itr.second->isList());
     std::string parentName = dmUtility::trimProperty(itr.second->objectName());
 
     bool found = false;
@@ -399,7 +400,6 @@ dmProviderDatabase::getProviderByObjectName(std::string const& p, bool* isListIt
   while(true)
   {
     string token = p.substr(n1, n2-n1);
- //   rtLog_Warn("isList=%d", (int)isList);
     if(!isList)
     {
       if(isListItem)
@@ -417,7 +417,7 @@ dmProviderDatabase::getProviderByObjectName(std::string const& p, bool* isListIt
       }
       else if(provider)
       {
-        rtLog_Warn("Failed to find %s", fullName.c_str());
+        rtLog_Debug("Failed to find %s", fullName.c_str());
         return nullptr;
       }
     }
@@ -436,7 +436,7 @@ dmProviderDatabase::getProviderByObjectName(std::string const& p, bool* isListIt
     n1 = n2+1;
     n2 = p.find('.', n1);
   }
-  rtLog_Warn("getProviderByPropertyName input=%s output=%s trimmed=%s fullName=%s instanceName=%s", 
+  rtLog_Debug("getProviderByPropertyName input=%s output=%s trimmed=%s fullName=%s instanceName=%s", 
     p.c_str(), provider != nullptr ? provider->objectName().c_str() : "null", p2.c_str(),  fullName.c_str(), instanceName.c_str());
   return provider;
 }

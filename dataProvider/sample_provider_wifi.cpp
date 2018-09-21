@@ -77,7 +77,7 @@ public:
     onGet("InterfaceIdsOfEntries", [this]() -> dmValue { return "1"; });
   }
 protected:
-  void startTransaction()
+  void beginTransaction()
   {
     mssidT.clear();
     mstatusT.clear();

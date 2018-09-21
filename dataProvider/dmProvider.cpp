@@ -75,7 +75,7 @@ dmProvider::doSet(std::vector<dmNamedValue> const& params, std::vector<dmQueryRe
   if(doTransaction)
   {
     m_isTransaction = true;
-    startTransaction();
+    beginTransaction();
   }
   for (auto const& value : params)
   {

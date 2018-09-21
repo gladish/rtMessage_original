@@ -335,7 +335,7 @@ dmProviderHost::registerProvider(char const* object, std::unique_ptr<dmProvider>
 {
   bool b = false;
   std::shared_ptr<dmProviderInfo> objectInfo = db->getProviderByObjectName(std::string(object)); 
-  rtLog_Warn("registerProvider fullName=%s instanceName=%s", objectInfo->objectName().c_str(), object);
+  rtLog_Info("registerProvider fullName=%s instanceName=%s", objectInfo->objectName().c_str(), object);
 
   if (objectInfo)
   {
@@ -346,7 +346,7 @@ dmProviderHost::registerProvider(char const* object, std::unique_ptr<dmProvider>
       if(objectInfo->isList())
       {
         std::string listName = dmUtility::trimProperty(object);
-        rtLog_Warn("adding list item %s to list %s", object, listName.c_str());
+        rtLog_Debug("adding list item %s to list %s", object, listName.c_str());
         m_lists[listName].push_back(object);
       }
     }

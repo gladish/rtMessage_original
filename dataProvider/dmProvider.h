@@ -42,7 +42,7 @@ protected:
   void onGet(std::string const& propertyName, getter_function func);
   void onSet(std::string const& propertyName, setter_function func);
 
-  virtual void startTransaction(){}
+  virtual void beginTransaction(){}
   virtual void endTransaction(){}
   bool isTransaction() const 
     { return m_isTransaction; }
