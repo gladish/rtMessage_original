@@ -71,7 +71,7 @@ rtVector_PushBack(rtVector v, void* item)
   }
   else if (v->count + 1 >= v->capacity)
   {
-    v->data = realloc(v->data, v->capacity + RTVECT_BLOCKSIZE);
+    v->data = realloc(v->data, (v->capacity + RTVECT_BLOCKSIZE) * sizeof(void *));
     v->capacity += RTVECT_BLOCKSIZE;
   }
 
