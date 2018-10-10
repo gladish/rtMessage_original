@@ -70,13 +70,7 @@ void
 dmQueryResult::addValue(dmPropertyInfo const& prop, dmValue const& val, int code, 
   char const* message)
 {
-  m_status = code;
   m_values.push_back(dmQueryResult::Param(code, message, val, prop));
-
-  if (message)
-  {
-    setStatusMsg(std::string(message));
-  }
 }
 
 dmQueryResult::Param::Param(int code, char const* msg, dmValue const& val, dmPropertyInfo const& info)

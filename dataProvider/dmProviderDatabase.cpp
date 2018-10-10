@@ -118,30 +118,49 @@ public:
         }
 #endif
         int status = 0;
-        int index = -1;
-        char const* param = nullptr;
-        char const* value = nullptr;
         char const* status_msg = nullptr;
-
-        if (rtMessage_GetString(item, "name", &param) != RT_OK)
-          rtLog_Debug("failed to get 'name' from paramter");
-        if (rtMessage_GetString(item, "value", &value) != RT_OK)
-          rtLog_Debug("failed to get 'value' from parameter");
         if (rtMessage_GetInt32(item, "status", &status) != RT_OK)
           rtLog_Error("failed to get 'status' from response");
         if (rtMessage_GetString(item, "status_msg", &status_msg) != RT_OK)
           rtLog_Debug("no status message in response");
-
-        if (param != nullptr && value != nullptr)
-        {
-          dmPropertyInfo propInfo = m_providerInfo->getPropertyInfo(param);
-          m_results.addValue(propInfo, dmValue(value));
-        }
-
         if(status != 0)
           m_results.setStatus(status);
         if(status_msg != nullptr)
           m_results.setStatusMsg(status_msg);
+
+        int32_t paramslen;
+        rtMessage_GetArrayLength(item, "params", &paramslen);
+        for (int32_t j = 0; j < paramslen; ++j)
+        {
+          int status = 0;
+          int index = -1;
+          char const* param = nullptr;
+          char const* value = nullptr;
+          char const* status_msg = nullptr;
+
+          rtMessage p;
+          rtMessage_GetMessageItem(item, "params", j, &p);
+
+          if (rtMessage_GetString(p, "name", &param) != RT_OK)
+            rtLog_Debug("failed to get 'name' from paramter");
+          if (rtMessage_GetString(p, "value", &value) != RT_OK)
+            rtLog_Debug("failed to get 'value' from parameter");
+          if (rtMessage_GetInt32(p, "status", &status) != RT_OK)
+            rtLog_Error("failed to get 'status' from response");
+          if (rtMessage_GetString(p, "status_msg", &status_msg) != RT_OK)
+            rtLog_Debug("no status message in response");
+
+          if (param != nullptr && value != nullptr)
+          {
+            dmPropertyInfo info = m_providerInfo->getPropertyInfo(param);
+            if(info.fullName().empty())
+            {
+              info.setName(dmUtility::trimPropertyName(param));
+              info.setFullName(param);
+            }
+            m_results.addValue(info, dmValue(value), status, status_msg != nullptr ? status_msg : "");
+          }
+        }
       }
 
       m_results.setObjectName(m_instanceName);
@@ -604,9 +623,9 @@ dmProviderDatabase::makeProviderInfo(char const* s)
       if ((q = cJSON_GetObjectItem(props, "type")) != nullptr)
         prop.setType(dmValueType_fromString(q->valuestring));
       if ((q = cJSON_GetObjectItem(props, "optional")) != nullptr)
-        prop.setIsOptional(p->type == cJSON_True);
+        prop.setIsOptional(q->type == cJSON_True);
       if ((q = cJSON_GetObjectItem(props, "writable")) != nullptr)
-        prop.setIsWritable(p->type == cJSON_True);
+        prop.setIsWritable(q->type == cJSON_True);
 
       // rtLog_Info("add prop:%s", prop.name().c_str());
       providerInfo->addProperty(prop);

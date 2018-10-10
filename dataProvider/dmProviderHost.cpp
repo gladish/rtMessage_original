@@ -130,7 +130,7 @@ private:
       // TODO: return error
     }
 
-    std::vector<dmQueryResult> results;
+    dmQueryResult result;
     dmProviderOperation op = host->decodeOperation(req);
 
     if (op == dmProviderOperation_Get)
@@ -138,19 +138,19 @@ private:
       std::string providerName;
       std::vector<dmPropertyInfo> params;
       host->decodeGetRequest(req, providerName, params);
-      host->doGet(providerName, params, results);
+      host->doGet(providerName, params, result);
     }
     else if (op == dmProviderOperation_Set)
     {
       std::string providerName;
       std::vector<dmNamedValue> params;
       host->decodeSetRequest(req, providerName, params);
-      host->doSet(providerName, params, results);
+      host->doSet(providerName, params, result);
     }
 
     rtMessage res;
     rtMessage_Create(&res);
-    host->encodeResult(res, results);
+    host->encodeResult(res, result);
     rtConnection_SendResponse(m_con, hdr, res, 1000);
     rtMessage_Release(res);
   }
@@ -196,7 +196,13 @@ private:
       if (isWildcard)
         params = objectInfo->properties();
       else
-        params.push_back(objectInfo->getPropertyInfo(propertyName));
+      {
+        dmPropertyInfo info = objectInfo->getPropertyInfo(propertyName);
+        //if property not found then set its fullName so that it gets passed up in the error
+        if(info.fullName().empty())
+          info.setFullName(propertyName);
+        params.push_back(info);
+      }
     }
     else
     {
@@ -270,7 +276,17 @@ private:
           });
 
         if (itr != props.end())
+        {
           params.push_back(makeNamedValue(*itr, nameVal.second.c_str()));
+        }
+        else
+        {
+          //if property not found then create one with a fullName so that it gets passed up in the error
+          dmPropertyInfo info;
+          info.setFullName(targetName);
+          info.setIsWritable(true);
+          params.push_back(makeNamedValue(info, nameVal.second.c_str()));
+        }
       }
     }
     else
@@ -281,38 +297,43 @@ private:
     rtMessage_Release(item);
   }
 
-  void encodeResult(rtMessage& res, std::vector<dmQueryResult> const& resultSet)
+  void encodeResult(rtMessage& res, dmQueryResult const& result)
   {
-    for (dmQueryResult const& result : resultSet)
+    rtMessage msg;
+    rtMessage_Create(&msg);
+    int statusCode = result.status();
+    std::string statusMessage = result.statusMsg();
+
+    for (dmQueryResult::Param const& param : result.values())
     {
-      rtMessage msg;
-      rtMessage_Create(&msg);
-      int statusCode = result.status();
-      std::string statusMessage = result.statusMsg();
+      rtMessage p;
+      rtMessage_Create(&p);
+      rtMessage_SetString(p, "name", param.Info.fullName().c_str());
+      rtMessage_SetString(p, "value", param.Value.toString().c_str());
+      rtMessage_SetInt32(p, "status", param.StatusCode);
+      rtMessage_SetString(p, "status_msg", param.StatusMessage.c_str());
+      rtMessage_AddMessage(msg, "params", p);
+      rtMessage_Release(p);
+      // I don't like how we do this. This is trying to set the overall status of the
+      // request to the first error it sees. For example, if we query two params, and
+      // one is ok and the other is an error, the statuscode is set to the second error
+      // code. If there are two errors it'll set it to the first. We should introduce an
+      // top-level error code in the response message. possibly something that indicates
+      // that there's partial failure.
+      //if (param.StatusCode != 0 && statusCode == 0)
+        //statusCode = param.StatusCode;
 
-      for (dmQueryResult::Param const& param : result.values())
-      {
-        // I don't like how we do this. This is trying to set the overall status of the
-        // request to the first error it sees. For example, if we query two params, and
-        // one is ok and the other is an error, the statuscode is set to the second error
-        // code. If there are two errors it'll set it to the first. We should introduce an
-        // top-level error code in the response message. possibly something that indicates
-        // that there's partial failure.
-        if (param.StatusCode != 0 && statusCode == 0)
-          statusCode = param.StatusCode;
+      //if (statusMessage.empty() && !param.StatusMessage.empty())
+        //statusMessage = param.StatusMessage;
 
-        if (statusMessage.empty() && !param.StatusMessage.empty())
-          statusMessage = param.StatusMessage;
-
-        rtMessage_SetString(msg, "name", param.Info.fullName().c_str());
-        rtMessage_SetString(msg, "value", param.Value.toString().c_str());
-      }
-
-      rtMessage_SetInt32(msg, "status", statusCode);
-      rtMessage_SetString(msg, "status_msg", statusMessage.c_str());
-      rtMessage_AddMessage(res, "result", msg);
-      rtMessage_Release(msg);
+     // rtMessage_SetString(msg, "name", param.Info.fullName().c_str());
+     // rtMessage_SetString(msg, "value", param.Value.toString().c_str());
     }
+
+    rtMessage_SetInt32(msg, "status", statusCode);
+    rtMessage_SetString(msg, "status_msg", statusMessage.c_str());
+    rtMessage_AddMessage(res, "result", msg);
+    rtMessage_Release(msg);
   }
 
 private:
@@ -359,8 +380,7 @@ dmProviderHost::registerProvider(char const* object, std::unique_ptr<dmProvider>
 }
 
 void
-dmProviderHost::doGet(std::string const& providerName, std::vector<dmPropertyInfo> const& params,
-    std::vector<dmQueryResult>& result)
+dmProviderHost::doGet(std::string const& providerName, std::vector<dmPropertyInfo> const& params, dmQueryResult& result)
 {
   auto itr = m_providers.find(providerName);
   if (itr != m_providers.end())
@@ -375,8 +395,7 @@ dmProviderHost::doGet(std::string const& providerName, std::vector<dmPropertyInf
 }
 
 void
-dmProviderHost::doSet(std::string const& providerName, std::vector<dmNamedValue> const& params,
-    std::vector<dmQueryResult>& result)
+dmProviderHost::doSet(std::string const& providerName, std::vector<dmNamedValue> const& params, dmQueryResult& result)
 {
   auto itr = m_providers.find(providerName);
   if (itr != m_providers.end())

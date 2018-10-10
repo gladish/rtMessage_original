@@ -69,10 +69,10 @@ protected:
   virtual bool providerRegistered(std::string const& name) = 0;
 
   void doGet(std::string const& providerName, std::vector<dmPropertyInfo> const& params,
-    std::vector<dmQueryResult>& result);
+    dmQueryResult& result);
 
   void doSet(std::string const& providerName, std::vector<dmNamedValue> const& params,
-    std::vector<dmQueryResult>& result);
+    dmQueryResult& result);
 
   dmProviderDatabase* db;
 

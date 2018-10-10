@@ -9,10 +9,10 @@
       {"name": "AdapterIdsOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
       {"name": "InterfaceNumberOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
       {"name": "InterfaceIdsOfEntries", "type": "string", "optional": false, "writable": false, "version": "2.0"},
-      {"name": "SSID", "type": "string", "optional": false, "writable": false, "version": "2.0"},
-      {"name": "SecurityType", "type": "string", "optional": false, "writable": false, "version": "2.0"},
-      {"name": "Channel", "type": "string", "optional": false, "writable": false, "version": "2.0"},
-      {"name": "Mode", "type": "string", "optional": false, "writable": false, "version": "2.0"},
-      {"name": "Status", "type": "string", "optional": false, "writable": false, "version": "2.0"}
+      {"name": "SSID", "type": "string", "optional": false, "writable": true, "version": "2.0"},
+      {"name": "SecurityType", "type": "string", "optional": false, "writable": true, "version": "2.0"},
+      {"name": "Channel", "type": "string", "optional": false, "writable": true, "version": "2.0"},
+      {"name": "Mode", "type": "string", "optional": false, "writable": true, "version": "2.0"},
+      {"name": "Status", "type": "string", "optional": false, "writable": true, "version": "2.0"}
     ]
 }

@@ -52,18 +52,28 @@ public:
         if (len > maxParamLength)
           maxParamLength = len;
     }
-    maxParamLength += result.objectName().length();
+    maxParamLength += result.objectName().length() + 1;
 
     std::cout << std::endl;
     for (auto const& param: result.values())
     {
-      std::cout << "    ";
-      std::cout.width(maxParamLength);
-      std::cout << std::left;
-      std::cout << result.objectName() + "." + param.Info.name();
-      std::cout << " = ";
-      std::cout << param.Value.toString();
-      std::cout << std::endl;
+      if(param.StatusCode == 0)
+      {
+        std::cout << "    ";
+        std::cout.width(maxParamLength);
+        std::cout << std::left;
+        std::cout << result.objectName() + "." + param.Info.name();
+        std::cout << " = ";
+        std::cout << param.Value.toString();
+        std::cout << std::endl;
+      }
+    }
+    for (auto const& param: result.values())
+    {
+      if(param.StatusCode != 0)
+      {
+        std::cout << "    Error " << param.StatusCode << ": " << param.StatusMessage << ". " << result.objectName() + "." + param.Info.name() << std::endl;
+      }
     }
     std::cout << std::endl;
   }
@@ -92,12 +102,6 @@ void splitParams(std::string const& params, std::vector<std::string>& tokens)
   }
   if(last == params.size() && last - first > 1)
       tokens.push_back(params.substr(first, last-first));
-
-  for(size_t i = 0; i < tokens.size(); ++i)
-  {
-    //trim whitespace
-    std::cout << "token " << i << " = " << tokens[i] << std::endl;
-  }
 }
 
 int main(int argc, char *argv[])

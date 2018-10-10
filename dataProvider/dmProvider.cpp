@@ -28,35 +28,31 @@ dmProvider::~dmProvider()
 }
 
 void
-dmProvider::doGet(std::vector<dmPropertyInfo> const& params, std::vector<dmQueryResult>& result)
+dmProvider::doGet(std::vector<dmPropertyInfo> const& params, dmQueryResult& result)
 {
-  dmQueryResult temp;
-  temp.setStatus(RT_PROP_NOT_FOUND);
-
   for (auto const& propInfo : params)
   {
     auto itr = m_provider_functions.find(propInfo.name());
     if ((itr != m_provider_functions.end()) && (itr->second.getter != nullptr))
     {
       dmValue val = itr->second.getter();
-      temp.addValue(propInfo, val);
+      result.addValue(propInfo, val);
     }
     else
     {
+      dmQueryResult temp;
+      temp.setStatus(RT_PROP_NOT_FOUND);
       doGet(propInfo, temp);
+      if (temp.status() == RT_PROP_NOT_FOUND || temp.values().size() == 0)
+      {
+        rtLog_Debug("property:%s not found", propInfo.name().c_str());
+        result.addValue(propInfo, "", RT_PROP_NOT_FOUND, "Property not found");
+      }
+      else 
+      {
+        result.addValue(propInfo, temp.values()[0].Value);
+      }
     }
-
-    if (temp.status() == RT_PROP_NOT_FOUND)
-    {
-      // TODO
-      rtLog_Debug("property:%s not found", propInfo.name().c_str());
-    }
-    else
-    {
-      result.push_back(temp);
-    }
-
-    temp.clear();
   }
 }
 
@@ -67,10 +63,8 @@ dmProvider::doGet(dmPropertyInfo const& /*param*/, dmQueryResult& /*result*/)
 }
 
 void
-dmProvider::doSet(std::vector<dmNamedValue> const& params, std::vector<dmQueryResult>& result)
+dmProvider::doSet(std::vector<dmNamedValue> const& params, dmQueryResult& result)
 {
-  dmQueryResult temp;
-  temp.setStatus(RT_PROP_NOT_FOUND);
   bool doTransaction(params.size() > 1);
   if(doTransaction)
   {
@@ -79,28 +73,33 @@ dmProvider::doSet(std::vector<dmNamedValue> const& params, std::vector<dmQueryRe
   }
   for (auto const& value : params)
   {
+    if(!value.info().isWritable())
+    {
+      rtLog_Debug("property:%s not writable", value.name().c_str());
+      result.addValue(value.info(), "", RT_ERROR, "Property not writable");
+      continue;
+    }
     auto itr = m_provider_functions.find(value.name());
     if ((itr != m_provider_functions.end()) && (itr->second.setter != nullptr))
     {
       itr->second.setter(value.value());
-      temp.addValue(value.info(), value.value());
+      result.addValue(value.info(), value.value());
     }
     else
     {
+      dmQueryResult temp;
+      temp.setStatus(RT_PROP_NOT_FOUND);
       doSet(value.info(), value.value(), temp);
+      if (temp.status() == RT_PROP_NOT_FOUND || temp.values().size() == 0)
+      {
+        rtLog_Debug("property:%s not found", value.name().c_str());
+        result.addValue(value.info(), "", RT_PROP_NOT_FOUND, "Property not found");
+      }
+      else 
+      {
+        result.addValue(value.info(), temp.values()[0].Value);
+      }
     }
-
-    if (temp.status() == RT_PROP_NOT_FOUND)
-    {
-      // TODO
-      rtLog_Debug("property:%s not found", value.name().c_str());
-    }
-    else
-    {
-      result.push_back(temp);
-    }
-
-    temp.clear();
   }
   if(doTransaction)
   {
