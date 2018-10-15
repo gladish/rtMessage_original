@@ -41,7 +41,6 @@ dmProvider::doGet(std::vector<dmPropertyInfo> const& params, dmQueryResult& resu
     else
     {
       dmQueryResult temp;
-      temp.setStatus(RT_PROP_NOT_FOUND);
       doGet(propInfo, temp);
       if (temp.status() == RT_PROP_NOT_FOUND || temp.values().size() == 0)
       {
@@ -88,7 +87,6 @@ dmProvider::doSet(std::vector<dmNamedValue> const& params, dmQueryResult& result
     else
     {
       dmQueryResult temp;
-      temp.setStatus(RT_PROP_NOT_FOUND);
       doSet(value.info(), value.value(), temp);
       if (temp.status() == RT_PROP_NOT_FOUND || temp.values().size() == 0)
       {

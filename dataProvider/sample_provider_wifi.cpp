@@ -56,7 +56,6 @@ public:
   EndPointObject(const char* alias, const char* ssid, const char* security, const char* channel, const char* mode, const char* status) 
     : malias(alias), mssid(ssid), msecurityType(security), mchannel(channel), mmode(mode), mstatus(status)
   {
-    onGet("Alias", [this]() -> dmValue { return malias.c_str(); });
     onGet("Status", [this]() -> dmValue { return mstatus.c_str(); });
     onSet("Status", [this](dmValue const& value) -> void { 
       if(isTransaction())
@@ -77,6 +76,23 @@ public:
     onGet("InterfaceIdsOfEntries", [this]() -> dmValue { return "1"; });
   }
 protected:
+  void doGet(dmPropertyInfo const& param, dmQueryResult& result)
+  {
+    if(param.name() == "Alias")
+    {
+      rtLog_Warn("doGet Alias");
+      result.addValue(param, malias.c_str());
+    }
+  }
+  void doSet(dmPropertyInfo const& info, dmValue const& value, dmQueryResult& result)
+  {
+    if(info.name() == "Alias")
+    {
+      rtLog_Warn("doSet Alias");
+      malias = value.toString();
+      result.addValue(info, malias.c_str());
+    }
+  }
   void beginTransaction()
   {
     mssidT.clear();
