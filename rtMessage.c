@@ -14,19 +14,43 @@
  */
 #include "rtError.h"
 #include "rtMessage.h"
+#include "rtVector.h"
 
+#ifdef WITH_CJSON
 #include <cJSON.h>
+#endif
+
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <stdatomic.h>
+
+#ifdef WITH_CJSON
+struct _rtMessage
+{
+  cJSON*  json;
+  int     count;
+};
+#else
+
+typedef struct
+{
+  union
+  {
+    char*               str;
+    int32_t             i32;
+    double              d;
+    struct _rtMessage*  msg;
+  } data;
+} rtValue;
 
 struct _rtMessage
 {
-  cJSON* json;
-  atomic_int count;
+  int         count;
+  rtVector    props;
 };
+#endif
 
 /**
  * Allocate storage and initializes it as new message
@@ -36,14 +60,23 @@ struct _rtMessage
 rtError
 rtMessage_Create(rtMessage* message)
 {
-  *message = (rtMessage) malloc(sizeof(struct _rtMessage));
-  if (message)
-  {
-    (*message)->json = cJSON_CreateObject();
-    (*message)->count = 1;
-    return RT_OK;
-  }
-  return RT_FAIL;
+  struct _rtMessage* m = malloc(sizeof(struct _rtMessage));
+  if (!m)
+    return RT_FAIL;
+
+#ifdef WITH_CJSON
+  m->json = cJSON_CreateObject();
+  m->count = 1;
+#else
+  m->count = 1;
+
+  // TODO
+  assert(0);
+#endif
+
+  *message = m;
+
+  return RT_OK;
 }
 
 /**
@@ -56,12 +89,19 @@ rtError
 rtMessage_Clone(rtMessage const message, rtMessage* copy)
 {
   *copy = (rtMessage) malloc(sizeof(struct _rtMessage));
+
+#ifdef WITH_CJSON
   if (copy)
   {
     (*copy)->json = cJSON_Duplicate(message->json, 1);
     (*copy)->count = 1;
     return RT_OK;
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_FAIL;
 }
 
@@ -88,12 +128,18 @@ rtMessage_FromBytes(rtMessage* message, uint8_t const* bytes, int n)
   printf("\n\n");
   #endif
 
+#ifdef WITH_CJSON
   *message = (rtMessage) malloc(sizeof(struct _rtMessage));
   if (message)
   {
     (*message)->json = cJSON_Parse((char *) bytes);
     return RT_OK;
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_FAIL;
 }
 
@@ -105,6 +151,7 @@ rtMessage_FromBytes(rtMessage* message, uint8_t const* bytes, int n)
 rtError
 rtMessage_Destroy(rtMessage message)
 {
+#ifdef WITH_CJSON
   if ((message) && ((message)->count == 0))
   {
     if (message->json)
@@ -112,6 +159,11 @@ rtMessage_Destroy(rtMessage message)
     free(message);
     return RT_OK;
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_FAIL;
 }
 
@@ -125,7 +177,13 @@ rtMessage_Destroy(rtMessage message)
 rtError
 rtMessage_ToByteArray(rtMessage message, uint8_t** buff, uint32_t *n)
 {
+#ifdef WITH_CJSON
   return rtMessage_ToString(message, (char **) buff, n);
+#else
+  // TODO
+  assert(0);
+  return RT_OK;
+#endif
 }
 
 /**
@@ -138,8 +196,14 @@ rtMessage_ToByteArray(rtMessage message, uint8_t** buff, uint32_t *n)
 rtError
 rtMessage_ToString(rtMessage const m, char** s, uint32_t* n)
 {
+#ifdef WITH_CJSON
   *s = cJSON_PrintUnformatted(m->json);
   *n = strlen(*s);
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_OK;
 }
 
@@ -153,7 +217,12 @@ rtMessage_ToString(rtMessage const m, char** s, uint32_t* n)
 void
 rtMessage_SetString(rtMessage message, char const* name, char const* value)
 {
+#ifdef WITH_CJSON
    cJSON_AddItemToObject(message->json, name, cJSON_CreateString(value));
+#else
+  // TODO
+  assert(0);
+#endif
 }
 
 /**
@@ -166,7 +235,12 @@ rtMessage_SetString(rtMessage message, char const* name, char const* value)
 void
 rtMessage_SetInt32(rtMessage message, char const* name, int32_t value)
 {
+#ifdef WITH_CJSON
   cJSON_AddNumberToObject(message->json, name, value); 
+#else
+  // TODO
+  assert(0);
+#endif
 }
 
 /**
@@ -179,7 +253,12 @@ rtMessage_SetInt32(rtMessage message, char const* name, int32_t value)
 void
 rtMessage_SetDouble(rtMessage message, char const* name, double value)
 {
+#ifdef WITH_CJSON
   cJSON_AddItemToObject(message->json, name, cJSON_CreateNumber(value));
+#else
+  // TODO
+  assert(0);
+#endif
 }
 
 /**
@@ -194,11 +273,17 @@ rtMessage_SetMessage(rtMessage message, char const* name, rtMessage item)
 {
   if (!message || !item)
     return RT_ERROR_INVALID_ARG;
+
+#ifdef WITH_CJSON
   if (item->json)
   {
     cJSON* obj = cJSON_Duplicate(item->json, 1);
     cJSON_AddItemToObject(message->json, name, obj);
   }
+#else
+  // TODO
+  assert(0);
+#endif
   return RT_OK;
 }
 
@@ -212,12 +297,18 @@ rtMessage_SetMessage(rtMessage message, char const* name, rtMessage item)
 rtError
 rtMessage_GetString(rtMessage const  message, const char* name, char const** value)
 {
+#ifdef WITH_CJSON
   cJSON* p = cJSON_GetObjectItem(message->json, name);
   if (p)
   {
     *value = p->valuestring;
     return RT_OK;
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_FAIL;
 }
 
@@ -232,6 +323,7 @@ rtMessage_GetString(rtMessage const  message, const char* name, char const** val
 rtError
 rtMessage_GetStringValue(rtMessage const message, char const* name, char* fieldvalue, int n)
 {
+#ifdef WITH_CJSON
   cJSON* p = cJSON_GetObjectItem(message->json, name);
   if (p)
   {
@@ -244,6 +336,11 @@ rtMessage_GetStringValue(rtMessage const message, char const* name, char* fieldv
     }
     return RT_FAIL;
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_FAIL;
 }
 
@@ -257,12 +354,18 @@ rtMessage_GetStringValue(rtMessage const message, char const* name, char* fieldv
 rtError
 rtMessage_GetInt32(rtMessage const message,const char* name, int32_t* value)
 {  
+#ifdef WITH_CJSON
   cJSON* p = cJSON_GetObjectItem(message->json, name);
   if (p)
   {
     *value = p->valueint;
     return RT_OK;
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_FAIL;
 }
 
@@ -276,12 +379,18 @@ rtMessage_GetInt32(rtMessage const message,const char* name, int32_t* value)
 rtError
 rtMessage_GetDouble(rtMessage const  message, char const* name,double* value)
 {
+#ifdef WITH_CJSON
   cJSON* p = cJSON_GetObjectItem(message->json, name);
   if (p)
   {
     *value = p->valuedouble;
     return RT_OK;
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_FAIL;
 }
 
@@ -297,6 +406,7 @@ rtMessage_GetMessage(rtMessage const message, char const* name, rtMessage* clone
 {
   *clone = (rtMessage) malloc(sizeof(struct _rtMessage));
 
+#ifdef WITH_CJSON
   cJSON* p = cJSON_GetObjectItem(message->json, name);
   if (p)
   {
@@ -304,6 +414,11 @@ rtMessage_GetMessage(rtMessage const message, char const* name, rtMessage* clone
      (*clone)->count = 1;
      return RT_OK;
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_FAIL;
 }
 
@@ -317,11 +432,18 @@ rtError
 rtMessage_GetSendTopic(rtMessage const m, char* topic)
 {
   rtError err = RT_OK;
+
+#ifdef WITH_CJSON
   cJSON* obj = cJSON_GetObjectItem(m->json, "_topic");
   if (obj)
     strcpy(topic, obj->valuestring);
   else
     err = RT_FAIL;
+#else
+  // TODO
+  assert(0);
+#endif
+
   return err;
 }
 
@@ -334,6 +456,7 @@ rtMessage_GetSendTopic(rtMessage const m, char* topic)
 rtError
 rtMessage_SetSendTopic(rtMessage const m, char const* topic)
 {
+#ifdef WITH_CJSON
   cJSON* obj = cJSON_GetObjectItem(m->json, "_topic");
   if (obj)
     cJSON_ReplaceItemInObject(m->json, "_topic", cJSON_CreateString(topic));
@@ -341,6 +464,11 @@ rtMessage_SetSendTopic(rtMessage const m, char const* topic)
     cJSON_AddItemToObject(m->json, "_topic", cJSON_CreateString(topic));
   if (obj)
     cJSON_Delete(obj);
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_OK;
 }
 
@@ -354,6 +482,7 @@ rtMessage_SetSendTopic(rtMessage const m, char const* topic)
 rtError
 rtMessage_AddString(rtMessage m, char const* name, char const* value)
 {
+#ifdef WITH_CJSON
   cJSON* obj = cJSON_GetObjectItem(m->json, name);
   if (!obj)
   {
@@ -361,6 +490,11 @@ rtMessage_AddString(rtMessage m, char const* name, char const* value)
     cJSON_AddItemToObject(m->json, name, obj);
   }
   cJSON_AddItemToArray(obj, cJSON_CreateString(value));
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_OK;
 }
 
@@ -377,6 +511,7 @@ rtMessage_AddMessage(rtMessage m, char const* name, rtMessage const item)
     if (!m || !item)
     return RT_ERROR_INVALID_ARG;
 
+#ifdef WITH_CJSON
   cJSON* obj = cJSON_GetObjectItem(m->json, name);
   if (!obj)
   {
@@ -388,6 +523,11 @@ rtMessage_AddMessage(rtMessage m, char const* name, rtMessage const item)
     cJSON* item_obj = cJSON_Duplicate(item->json, 1);
     cJSON_AddItemToArray(obj, item_obj);
   }
+#else
+  // TODO
+  assert(0);
+#endif
+
   return RT_OK;
 }
 
@@ -401,11 +541,16 @@ rtMessage_AddMessage(rtMessage m, char const* name, rtMessage const item)
 rtError
 rtMessage_GetArrayLength(rtMessage const m, char const* name, int32_t* length)
 {
+#ifdef WITH_CJSON
   cJSON* obj = cJSON_GetObjectItem(m->json, name);
   if (!obj)
     *length = 0;
   else
     *length = cJSON_GetArraySize(obj);
+#else 
+  // TODO
+  assert(0);
+#endif
   return RT_OK;
 }
 
@@ -421,6 +566,7 @@ rtMessage_GetArrayLength(rtMessage const m, char const* name, int32_t* length)
 rtError
 rtMessage_GetStringItem(rtMessage const m, char const* name, int32_t idx, char* value, int len)
 {
+#ifdef WITH_CJSON
   cJSON* obj = cJSON_GetObjectItem(m->json, name);
   if (!obj)
     return RT_PROPERTY_NOT_FOUND;
@@ -432,6 +578,10 @@ rtMessage_GetStringItem(rtMessage const m, char const* name, int32_t idx, char* 
   {
     strncpy(value, item->valuestring, len);
   }
+#else
+  // TODO
+  assert(0);
+#endif
   return RT_OK;
 }
 
@@ -446,6 +596,7 @@ rtMessage_GetStringItem(rtMessage const m, char const* name, int32_t idx, char* 
 rtError
 rtMessage_GetMessageItem(rtMessage const m, char const* name, int32_t idx, rtMessage* msg)
 {
+#ifdef WITH_CJSON
   cJSON* obj = cJSON_GetObjectItem(m->json, name);
   if (!obj)
     return RT_PROPERTY_NOT_FOUND;
@@ -458,6 +609,10 @@ rtMessage_GetMessageItem(rtMessage const m, char const* name, int32_t idx, rtMes
     (*msg)->json = cJSON_GetArrayItem(obj, idx);
     return RT_OK;
   }
+#else
+  // TODO
+  assert(0);
+#endif
   return RT_OK;
 }
 
