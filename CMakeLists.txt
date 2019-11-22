@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
+cmake_policy(SET CMP0057 NEW)
+
 project(rtmessage)
+enable_testing()
+
 include(ExternalProject)
 
 option(BUILD_FOR_DESKTOP "BUILD_FOR_DESKTOP" OFF)
@@ -11,6 +15,8 @@ option(BUILD_DATAPROVIDER_LIB "BUILD_DATAPROVIDER_LIB" ON)
 option(BUILD_DMCLI "BUILD_DMCLI" ON)
 option(BUILD_DMCLI_SAMPLE_APP "BUILD_DMCLI_SAMPLE_APP" ON)
 option(WITH_CJSON "WITH_CJSON" ON)
+
+
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -36,7 +42,7 @@ else ()
   set (CMAKE_CXX_STANDARD 11)
 endif ()
 
-set(CMAKE_C_FLAGS "")
+#set(CMAKE_C_FLAGS "")
 
 ExternalProject_Add(
   cJSON
@@ -183,6 +189,9 @@ if (BUILD_RTMESSAGE_SAMPLE_APP)
     add_dependencies(sample_send rtMessage)
     target_link_libraries(sample_res ${LIBRARY_LINKER_OPTIONS} rtMessage)
 endif (BUILD_RTMESSAGE_SAMPLE_APP)
+
+add_subdirectory(tests)
+
 
 install (TARGETS LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install (TARGETS ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
