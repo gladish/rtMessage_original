@@ -21,6 +21,7 @@
 #include "rtSocket.h"
 #include "rtVector.h"
 #include "rtConnection.h"
+#include "rtRoutingTree.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -69,7 +70,6 @@ typedef struct
 {
   rtSubscription*       subscription;
   rtRouteMessageHandler message_handler;
-  char                  expression[RTMSG_MAX_EXPRESSION_LEN];
 } rtRouteEntry;
 
 typedef struct
@@ -80,9 +80,10 @@ typedef struct
 
 rtVector clients;
 rtVector listeners;
-rtVector routes;
-//rtListener        listeners[RTMSG_MAX_LISTENERS];
-//rtRouteEntry      routes[RTMSG_MAX_ROUTES];
+rtRoutingTree* routes;
+
+static rtError
+rtRouted_ClearClientRoutes(rtConnectedClient* clnt);
 
 static void
 rtRouted_PrintHelp()
@@ -97,21 +98,61 @@ rtRouted_PrintHelp()
   exit(0);
 }
 
-static rtError
-rtRouted_AddRoute(rtRouteMessageHandler handler, char const* exp, rtSubscription* subscription)
+static rtBool
+rtRouted_RemoveClientSubscription(rtRoutingTreeEntry* e, void* user_data)
 {
-  rtRouteEntry* route = (rtRouteEntry *) malloc(sizeof(rtRouteEntry));
-  route->subscription = subscription;
-  route->message_handler = handler;
-  strncpy(route->expression, exp, RTMSG_MAX_EXPRESSION_LEN);
-  rtVector_PushBack(routes, route);
-  rtLog_Info("client [%s] added new route:%s", subscription->client->ident, exp);
+  (void) e;
+  (void) user_data;
+
+  // TODO
+
+  return rtBool_FALSE;
+}
+
+static rtError
+rtRouted_DispatchCallback(rtRoutingTreeEntry* e, void* user_data)
+{
+  rtRouteEntry* entry = (rtRouteEntry *) e->context;
+  rtConnectedClient* clnt = (rtConnectedClient *) user_data;
+
+  rtError err = entry->message_handler(clnt, &clnt->header, clnt->read_buffer + 
+      clnt->header.header_length, clnt->header.payload_length, entry->subscription);
+
+  if (err != RT_OK)
+  {
+    if (err == rtErrorFromErrno(EBADF))
+      rtRouted_ClearClientRoutes(clnt);
+  }
+
   return RT_OK;
 }
 
 static rtError
+rtRouted_AddRoute(rtRouteMessageHandler handler, char const* exp, rtSubscription* subscription)
+{
+  rtError e;
+
+  rtRouteEntry* entry = malloc(sizeof(rtRouteEntry));
+  entry->subscription = subscription;
+  entry->message_handler = handler;
+
+  e = rtRoutingTree_AddRoute(routes, exp, entry);
+
+  rtLog_Info("client [%s] added new route:%s. %s", subscription->client->ident, exp,
+    rtStrError(e));
+
+  return e;
+}
+
+rtError
 rtRouted_ClearClientRoutes(rtConnectedClient* clnt)
 {
+  rtError e = rtRoutingTree_RemoveIf(routes, &rtRouted_RemoveClientSubscription, clnt);
+  rtLog_Info("removed all routes from routing tree for client:%p. %s",
+    clnt, rtStrError(e));
+  return e;
+
+#if 0
   size_t i;
   for (i = 0; i < rtVector_Size(routes);)
   {
@@ -127,8 +168,8 @@ rtRouted_ClearClientRoutes(rtConnectedClient* clnt)
       i++;
     }
   }
-
   return RT_OK;
+#endif
 }
 
 static void
@@ -259,43 +300,6 @@ rtRouted_OnMessage(rtConnectedClient* sender, rtMessageHeader* hdr, uint8_t cons
   return RT_OK;
 }
 
-static int
-rtRouted_IsTopicMatch(char const* topic, char const* exp)
-{
-  char const* t = topic;
-  char const* e = exp;
-
-
-  while (*t && *e)
-  {
-    if (*e == '*')
-    {
-      while (*t && *t != '.')
-        t++;
-      e++;
-    }
-
-    if (*e == '>')
-    {
-      while (*t)
-        t++;
-      e++;
-    }
-
-    if (!(*t || *e))
-      break;
-
-    if (*t != *e)
-      break;
-
-    t++;
-    e++;
-  }
-
-  // rtLogInfo("match[%d]: %s <> %s", !(*t || *e), topic, exp);
-  return !(*t || *e);
-}
-
 static void
 rtConnectedClient_Init(rtConnectedClient* clnt, int fd, struct sockaddr_storage* remote_endpoint)
 {
@@ -314,41 +318,20 @@ rtConnectedClient_Init(rtConnectedClient* clnt, int fd, struct sockaddr_storage*
 static void
 rtRouter_DispatchMessageFromClient(rtConnectedClient* clnt)
 {
-  size_t i;
-  size_t n;
-  int match_found = 0;
+  rtError e = rtRoutingTree_ForEach(routes, clnt->header.topic,
+    &rtRouted_DispatchCallback, clnt);
 
-  for (i = 0, n = rtVector_Size(routes); i < n;)
+  if (e != RT_OK)
   {
-    rtError err = RT_OK;
-    rtRouteEntry* route = (rtRouteEntry *) rtVector_At(routes, i);
-    if (rtRouted_IsTopicMatch(clnt->header.topic, route->expression))
+    if ((e == RT_NO_CONNECTION) && rtMessageHeader_IsRequest(&clnt->header))
     {
-      match_found = 1;
-      err = route->message_handler(clnt, &clnt->header, clnt->read_buffer +
-          clnt->header.header_length, clnt->header.payload_length, route->subscription);
-
-      if (err != RT_OK)
-      {
-        if (err == rtErrorFromErrno(EBADF))
-        {
-          rtRouted_ClearClientRoutes(clnt);
-          n = rtVector_Size(routes);
-        }
-      }
+      rtConnection_SendErrorMessageToCaller(clnt->fd, &clnt->header);
     }
-
-    if (err == RT_OK)
-      i++;
-  }
-  int is_request = rtMessageHeader_IsRequest(&clnt->header);
-  if (!match_found && is_request)
-  {
-    // TODO: If this is a request, then send message directly back 
-    // to caller
-    rtLog_Error("no client found for match:%s", clnt->header.topic);
-    //No route Found , Returning an Error Message to caller
-    rtConnection_SendErrorMessageToCaller(clnt->fd, &clnt->header);
+    else
+    {
+      rtLog_Warn("failed to dispatch message from client. %s",
+          rtStrError(e));
+    }
   }
 }
 
@@ -530,7 +513,6 @@ int main(int argc, char* argv[])
   int use_no_delay;
   int ret;
   char const* socket_name;
-  rtRouteEntry* route;
 
   run_in_foreground = 0;
   use_no_delay = 0;
@@ -539,7 +521,6 @@ int main(int argc, char* argv[])
   rtLog_SetLevel(RT_LOG_INFO);
   rtVector_Create(&clients);
   rtVector_Create(&listeners);
-  rtVector_Create(&routes);
 
   FILE* pid_file = fopen("/tmp/rtrouted.pid", "w");
   if (!pid_file)
@@ -560,11 +541,7 @@ int main(int argc, char* argv[])
 
   // add internal route
   {
-    route = (rtRouteEntry *) malloc(sizeof(rtRouteEntry));
-    route->subscription = NULL;
-    strcpy(route->expression, "_RTROUTED.>");
-    route->message_handler = rtRouted_OnMessage;
-    rtVector_PushBack(routes, route);
+    rtRouted_AddRoute(&rtRouted_OnMessage, "_RTROUTED.>", NULL);
   }
 
   while (1)
@@ -604,11 +581,7 @@ int main(int argc, char* argv[])
         break;
       case 'r':
       {
-        route = (rtRouteEntry *) malloc(sizeof(rtRouteEntry));
-        route->subscription = NULL;
-        route->message_handler = &rtRouted_PrintMessage;
-        strcpy(route->expression, ">");
-        rtVector_PushBack(routes, route);
+        rtRouted_AddRoute(&rtRouted_PrintMessage, ">", NULL);
       }
       case '?':
         break;

@@ -23,13 +23,25 @@ set_target_properties(libgmock PROPERTIES
 
 include_directories("${source_dir}/googletest/include" "${source_dir}/googlemock/include")
 
+# someone needs to figure out how to run this stuff under valgrind
+add_custom_target(test_memcheck
+  COMMAND "${CMAKE_CTEST_COMMAND} --force-new-ctest-process --test-action memcheck"
+  COMMAND cat "${CMAKE_BINARY_DIR}/Testing/Temporary/MemoryChecker.*.log")
+
 # testGroup.1
 add_executable(testGroup.1 test1.cpp main.cpp)
 target_link_libraries(testGroup.1 libgtest libgmock rtMessage)
 
-# testGroup.2
-#add_executable(testGroup.2 test1.cpp main.cpp)
-#target_link_libraries(testGroup.2 libgtest libgmock rtMessage)
+# testGroup.rtRoutingTree
+add_executable(testGroup.rtRoutingTree rtRoutingTreeTests.cpp main.cpp
+  ../rtRoutingTree.c)
+target_link_libraries(testGroup.rtRoutingTree libgtest libgmock rtMessage)
+
+# testGroup.rtVector
+add_executable(testGroup.rtVector main.cpp rtVectorTests.cpp)
+target_link_libraries(testGroup.rtVector libgtest libgmock rtMessage)
 
 # not sure why this isn't working
 gtest_discover_tests(testGroup.1)
+gtest_discover_tests(testGroup.rtRoutingTree)
+gtest_discover_tests(testGroup.rtVector)

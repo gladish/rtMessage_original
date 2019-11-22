@@ -27,6 +27,7 @@ rtError rtVector_Create(rtVector* v);
 rtError rtVector_Destroy(rtVector v, rtVector_Cleanup destroyer);
 rtError rtVector_PushBack(rtVector v, void* item);
 rtError rtVector_RemoveItem(rtVector v, void* item, rtVector_Cleanup destroyer);
+rtError rtVector_RemoveItemAt(rtVector v, int n, rtVector_Cleanup destroyer);
 void*   rtVector_At(rtVector v, size_t index);
 size_t  rtVector_Size(rtVector v);
 

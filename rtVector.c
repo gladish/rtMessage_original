@@ -89,12 +89,18 @@ rtVector_RemoveItem(rtVector v, void* item, rtVector_Cleanup destroyer)
   for (i = 0; i < v->count; ++i)
   {
     if (v->data[i] == item)
-    {
-      if (destroyer)
-        destroyer(v->data[i]);
-      break;
-    }
+      return rtVector_RemoveItemAt(v, (int) i, destroyer);
   }
+  return RT_OK;
+}
+
+rtError
+rtVector_RemoveItemAt(rtVector v, int n, rtVector_Cleanup destroyer)
+{
+  size_t i = n;
+
+  if (destroyer)
+    destroyer(v->data[i]);
 
   while (i < v->count)
   {

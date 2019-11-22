@@ -34,7 +34,7 @@
 #define RT_ERROR_CLASS_SYSERROR 0x8000
 #define RT_ERROR_CLASS_BUILTIN 0x00000000
 
-#define RT_OK                           0
+#define RT_OK                           0u
 #define RT_ERROR                        1
 #define RT_FAIL                         1
 #define RT_ERROR_NOT_ENOUGH_ARGS        2

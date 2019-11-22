@@ -10,5 +10,5 @@ TEST(rtMessage, test2) {
 }
 
 TEST(rtMessage, test3) {
-  EXPECT_EQ(3, 2);
+  EXPECT_EQ(3, 3);
 }

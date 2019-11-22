@@ -161,5 +161,5 @@ rtError
 rtErrorFromErrno(int err)
 {
   // RT_ASSERT(err <= 65535); // uint16_max
-  return err == 0 ? RT_OK : (err | (RT_ERROR_CLASS_SYSERROR << 16));
+  return err == 0 ? RT_OK : (rtError) (err | (RT_ERROR_CLASS_SYSERROR << 16));
 }
