@@ -30,6 +30,17 @@
 #define RT_ASSERT(X) if (!(X)) rtLogError("rt assert: '%s' failed", #X);
 #endif
 
+#ifdef __GNUC__
+#define RT_DEPRECATED(ARG) __attribute__ ((deprecated)) ARG
+#elif defined(_MSC_VER)
+#define RT_DEPRECATED(ARG) __declspec(deprecated) ARG
+#else
+#pragma error "Deprecated not available"
+#define RT_DEPRECATED(func) func
+#endif
+
+
+
 // TODO review base numbering scheme for different error classes... general vs rtremote vs... 
 #define RT_ERROR_CLASS_SYSERROR 0x8000
 #define RT_ERROR_CLASS_BUILTIN 0x00000000
@@ -70,6 +81,13 @@ const char* rtError_ToString(rtError e);
 rtError rtError_GetLastError();
 rtError rtError_FromErrno(int err);
 void    rtError_SetLastError(rtError e);
+
+RT_DEPRECATED(const char*) rtStrError(rtError e);
+RT_DEPRECATED(rtError) rtErrorGetLastError();
+RT_DEPRECATED(rtError) rtErrorFromErrno(int err);
+RT_DEPRECATED(void) rtErrorSetLastError(rtError e);
+
+
 
 #ifdef __cplusplus
 }

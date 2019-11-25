@@ -63,6 +63,11 @@ rtErrorThreadSpecific* getThreadSpecific()
   return specific;
 }
 
+const char* rtStrError(rtError e)
+{
+  return rtError_ToString(e);
+}
+
 const char* rtError_ToString(rtError e)
 {
   const char* s = NULL;
@@ -86,6 +91,11 @@ const char* rtError_ToString(rtError e)
 
 }
 
+rtError rtErrorGetLastError()
+{
+  return rtError_GetLastError();
+}
+
 rtError rtError_GetLastError()
 {
   rtError current = 0;
@@ -93,6 +103,11 @@ rtError rtError_GetLastError()
   if (specific)
     current = specific->last_error;
   return current;
+}
+
+void rtErrorSetLastError(rtError e)
+{
+  return rtError_SetLastError(e);
 }
 
 void rtError_SetLastError(rtError e)
@@ -155,6 +170,12 @@ const char* rtError_ToString_BuiltIn(rtError e)
       break;
   }
   return s;
+}
+
+rtError
+rtErrorFromErrno(int err)
+{
+  return rtError_FromErrno(err);
 }
 
 rtError
