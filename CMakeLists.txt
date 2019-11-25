@@ -1,10 +1,38 @@
-cmake_minimum_required(VERSION 3.1)
-cmake_policy(SET CMP0057 NEW)
+cmake_minimum_required(VERSION 2.8)
+
+if (CMAKE_VERSION VERSION_GREATER "3.0")
+  cmake_policy(SET CMP0057 NEW)
+endif()
 
 project(rtmessage)
 enable_testing()
 
 include(ExternalProject)
+
+macro(use_c99)
+  if (CMAKE_VERSION VERSION_LESS "3.1")
+    if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+      set(CMAKE_C_FLAGS "-std=gnu99 ${CMAKE_C_FLAGS}")
+    endif()
+  else()
+    set(CMAKE_C_STANDARD 99)
+  endif ()
+endmacro()
+
+macro(set_define def)
+  if (${def})
+    if (CMAKE_VERSION VERSION_LESS "3.0")
+      set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D${def}=1")
+      set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -D${def}=1")
+      set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D${def}=1")
+      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -D${def}=1")
+    else()
+      add_compile_options("-D${def}")
+    endif()
+  endif()
+endmacro()
+
+use_c99()
 
 option(BUILD_FOR_DESKTOP "BUILD_FOR_DESKTOP" OFF)
 option(BUILD_RTMESSAGE_LIB "BUILD_RTMESSAGE_LIB" ON)
@@ -17,7 +45,6 @@ option(BUILD_DMCLI_SAMPLE_APP "BUILD_DMCLI_SAMPLE_APP" ON)
 option(WITH_CJSON "WITH_CJSON" ON)
 option(WITH_LINEAR_ROUTING_TABLE "WITH_LINEAR_ROUTING_TABLE" ON)
 
-
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -26,16 +53,11 @@ set(CMAKE_C_FLAGS_RELEASE "-Werror -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -O0 -fno-inline")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra")
 
-if (WITH_CJSON)
-  add_compile_options(-DWITH_CJSON)
-endif()
-
-if (WITH_LINEAR_ROUTING_TABLE)
-  add_compile_options(-DWITH_LINEAR_ROUTING_TABLE)
-endif()
+set_define(WITH_CJSON)
+set_define(WITH_LINEAR_ROUTING_TABLE)
 
 if (CMAKE_VERSION VERSION_LESS "3.1")
-  message("CMAKE ${CMAKE_CXX_COMPILER_ID}")
+  # message("CMAKE ${CMAKE_CXX_COMPILER_ID}")
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set (CMAKE_CXX_FLAGS "-std=gnu++11 ${CMAKE_CXX_FLAGS}")
   endif ()
@@ -192,8 +214,9 @@ if (BUILD_RTMESSAGE_SAMPLE_APP)
     target_link_libraries(sample_res ${LIBRARY_LINKER_OPTIONS} rtMessage)
 endif (BUILD_RTMESSAGE_SAMPLE_APP)
 
-add_subdirectory(tests)
-
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
 
 install (TARGETS LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install (TARGETS ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
