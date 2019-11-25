@@ -65,11 +65,11 @@ typedef uint32_t rtError;
 extern "C" {
 #endif
 
-const char* rtStrError(rtError e);
+const char* rtError_ToString(rtError e);
 
-rtError rtErrorGetLastError();
-rtError rtErrorFromErrno(int err);
-void    rtErrorSetLastError(rtError e);
+rtError rtError_GetLastError();
+rtError rtError_FromErrno(int err);
+void    rtError_SetLastError(rtError e);
 
 #ifdef __cplusplus
 }

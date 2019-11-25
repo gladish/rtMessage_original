@@ -62,7 +62,7 @@ int main()
   while (1)
   {
     err = rtConnection_Dispatch(con);
-    rtLog_Info("dispatch:%s", rtStrError(err));
+    rtLog_Info("dispatch:%s", rtError_ToString(err));
     if (err != RT_OK)
       sleep(1);
   }

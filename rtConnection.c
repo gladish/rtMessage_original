@@ -86,8 +86,8 @@ rtConnection_GetNextSubscriptionId()
 static int
 rtConnection_ShouldReregister(rtError e)
 {
-  if (rtErrorFromErrno(ENOTCONN) == e) return 1;
-  if (rtErrorFromErrno(EPIPE) == e) return 1;
+  if (rtError_FromErrno(ENOTCONN) == e) return 1;
+  if (rtError_FromErrno(EPIPE) == e) return 1;
   return 0;
 }
 
@@ -108,7 +108,7 @@ rtConnection_ConnectAndRegister(rtConnection con)
   rtLog_Info("connecting to router");
   con->fd = socket(con->remote_endpoint.ss_family, SOCK_STREAM, 0);
   if (con->fd == -1)
-    return rtErrorFromErrno(errno);
+    return rtError_FromErrno(errno);
   rtLog_Info("router connection up");
 
   fcntl(con->fd, F_SETFD, fcntl(con->fd, F_GETFD) | FD_CLOEXEC);
@@ -209,16 +209,16 @@ rtConnection_ReadUntil(rtConnection con, uint8_t* buff, int count, int32_t timeo
     ssize_t n = recv(con->fd, buff + bytes_read, (bytes_to_read - bytes_read), MSG_NOSIGNAL);
     if (n == 0)
     {
-      rtLog_Error("Failed to read error : %s", rtStrError(rtErrorFromErrno(ENOTCONN)));
-      return rtErrorFromErrno(ENOTCONN);
+      rtLog_Error("Failed to read error : %s", rtError_ToString(rtError_FromErrno(ENOTCONN)));
+      return rtError_FromErrno(ENOTCONN);
     }
 
     if (n == -1)
     {
       if (errno == EINTR)
         continue;
-      rtError e = rtErrorFromErrno(errno);
-      rtLog_Error("failed to read from fd %d. %s", con->fd, rtStrError(e));
+      rtError e = rtError_FromErrno(errno);
+      rtLog_Error("failed to read from fd %d. %s", con->fd, rtError_ToString(e));
       return e;
     }
     bytes_read += n;
@@ -241,7 +241,7 @@ rtConnection_Create(rtConnection* con, char const* application_name, char const*
 
   rtConnection c = (rtConnection) malloc(sizeof(struct _rtConnection));
   if (!c)
-    return rtErrorFromErrno(ENOMEM);
+    return rtError_FromErrno(ENOMEM);
 
   for (i = 0; i < RTMSG_LISTENERS_MAX; ++i)
   {
@@ -267,7 +267,7 @@ rtConnection_Create(rtConnection* con, char const* application_name, char const*
   err = rtSocketStorage_FromString(&c->remote_endpoint, router_config);
   if (err != RT_OK)
   {
-    rtLog_Warn("failed to parse:%s. %s", router_config, rtStrError(err));
+    rtLog_Warn("failed to parse:%s. %s", router_config, rtError_ToString(err));
     free(c);
     return err;
   }
@@ -460,7 +460,7 @@ rtConnection_SendInternal(rtConnection con, char const* topic, uint8_t const* bu
     if (bytes_sent != header.header_length)
     {
       if (bytes_sent == -1)
-        err = rtErrorFromErrno(errno);
+        err = rtError_FromErrno(errno);
       else
         err = RT_FAIL;
     }
@@ -471,7 +471,7 @@ rtConnection_SendInternal(rtConnection con, char const* topic, uint8_t const* bu
       if (bytes_sent != header.payload_length)
       {
         if (bytes_sent == -1)
-          err = rtErrorFromErrno(errno);
+          err = rtError_FromErrno(errno);
         else
           err = RT_FAIL;
       }
@@ -501,7 +501,7 @@ rtConnection_AddListener(rtConnection con, char const* expression, rtMessageCall
   }
 
   if (i >= RTMSG_LISTENERS_MAX)
-    return rtErrorFromErrno(ENOMEM);
+    return rtError_FromErrno(ENOMEM);
 
   con->listeners[i].in_use = 1;
   con->listeners[i].subscription_id = rtConnection_GetNextSubscriptionId();

@@ -68,7 +68,7 @@ private:
     rtError e = rtConnection_AddListener(m_con, s.c_str(), &dmProviderHostImpl::requestHandler, this);
     if (e != RT_OK)
     {
-      rtLog_Warn("failed to register provider listener. %s", rtStrError(e));
+      rtLog_Warn("failed to register provider listener. %s", rtError_ToString(e));
       return false;
     }
 
@@ -99,7 +99,7 @@ private:
       rtError e = rtConnection_Dispatch(m_con);
       if (e != RT_OK)
       {
-        rtLog_Warn("error during dispatch:%s", rtStrError(e));
+        rtLog_Warn("error during dispatch:%s", rtError_ToString(e));
       }
     }
   }

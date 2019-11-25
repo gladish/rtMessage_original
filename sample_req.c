@@ -37,7 +37,7 @@ int main()
     rtMessage_SetString(req, "field1", "hello world");
 
     err = rtConnection_SendRequest(con, req, "RDK.MODEL.PROVIDER1", &res, 2000);
-    rtLog_Info("SendRequest:%s", rtStrError(err));
+    rtLog_Info("SendRequest:%s", rtError_ToString(err));
 
     if (err == RT_OK)
     {

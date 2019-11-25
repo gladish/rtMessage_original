@@ -42,7 +42,7 @@ int main()
     rtMessage_SetMessage(m, "new", item);
 
     err = rtConnection_SendMessage(con, m, "A.B.C");
-    rtLog_Info("send[%s]: %s", "A.B.C", rtStrError(err));
+    rtLog_Info("send[%s]: %s", "A.B.C", rtError_ToString(err));
 
     rtMessage_Release(m);
     sleep(1);
@@ -51,7 +51,7 @@ int main()
     rtMessage_SetInt32(m, "field1", 1234);
 
     err = rtConnection_SendMessage(con, m, "A.B.C.FOO.BAR");
-    rtLog_Info("send[%s]: %s", "A.B.C.FOO.BAR", rtStrError(err));
+    rtLog_Info("send[%s]: %s", "A.B.C.FOO.BAR", rtError_ToString(err));
 
     rtMessage_Release(m);
     sleep(1);

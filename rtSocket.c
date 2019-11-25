@@ -94,7 +94,7 @@ rtSocket_GetLocalEndpoint(int fd, struct sockaddr_storage* endpoint)
   memset(endpoint, 0, sizeof(struct sockaddr_storage));
 
   if ((ret = getsockname(fd, (struct sockaddr *)endpoint, &len)) == -1)
-    rtLog_Error("getsockname:%s", rtStrError(errno));
+    rtLog_Error("getsockname:%s", rtError_ToString(errno));
 
   return RT_OK;
 }
@@ -168,7 +168,7 @@ rtSocketStorage_FromString(struct sockaddr_storage* ss, char const* addr)
   }
   else
   {
-    return rtErrorFromErrno(errno);
+    return rtError_FromErrno(errno);
   }
   return RT_OK;
 }

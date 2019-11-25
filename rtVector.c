@@ -31,7 +31,7 @@ rtVector_Create(rtVector* v)
 {
   (*v) = (struct _rtVector *) malloc(sizeof(struct _rtVector));
   if (!(*v))
-    return rtErrorFromErrno(ENOMEM);
+    return rtError_FromErrno(ENOMEM);
   (*v)->data = NULL;
   (*v)->capacity = 0;
   (*v)->count = 0;
@@ -76,7 +76,7 @@ rtVector_PushBack(rtVector v, void* item)
   }
 
   if (!v->data)
-    return rtErrorFromErrno(ENOMEM);
+    return rtError_FromErrno(ENOMEM);
 
   v->data[v->count++] = item;
   return RT_OK;

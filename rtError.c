@@ -34,8 +34,8 @@
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 static pthread_key_t key;
 
-static const char* rtStrError_BuiltIn(rtError e);
-static const char* rtStrError_SystemError(int e);
+static const char* rtError_ToString_BuiltIn(rtError e);
+static const char* rtError_ToString_SystemError(int e);
 
 typedef struct
 {
@@ -63,7 +63,7 @@ rtErrorThreadSpecific* getThreadSpecific()
   return specific;
 }
 
-const char* rtStrError(rtError e)
+const char* rtError_ToString(rtError e)
 {
   const char* s = NULL;
 
@@ -71,11 +71,11 @@ const char* rtStrError(rtError e)
   switch (klass)
   {
     case RT_ERROR_CLASS_BUILTIN:
-    s = rtStrError_BuiltIn(RT_ERROR_CODE(e));
+    s = rtError_ToString_BuiltIn(RT_ERROR_CODE(e));
     break;
 
     case RT_ERROR_CLASS_SYSERROR:
-    s = rtStrError_SystemError(RT_ERROR_CODE(e));
+    s = rtError_ToString_SystemError(RT_ERROR_CODE(e));
     break;
 
     default:
@@ -86,7 +86,7 @@ const char* rtStrError(rtError e)
 
 }
 
-rtError rtErrorGetLastError()
+rtError rtError_GetLastError()
 {
   rtError current = 0;
   rtErrorThreadSpecific* specific = getThreadSpecific();
@@ -95,14 +95,14 @@ rtError rtErrorGetLastError()
   return current;
 }
 
-void rtErrorSetLastError(rtError e)
+void rtError_SetLastError(rtError e)
 {
   rtErrorThreadSpecific* specific = getThreadSpecific();
   if (specific)
     specific->last_error = e;
 }
 
-const char* rtStrError_SystemError(int e)
+const char* rtError_ToString_SystemError(int e)
 {
   rtErrorThreadSpecific* specific = getThreadSpecific();
 
@@ -125,7 +125,7 @@ const char* rtStrError_SystemError(int e)
   return buff;
 }
 
-const char* rtStrError_BuiltIn(rtError e)
+const char* rtError_ToString_BuiltIn(rtError e)
 {
   const char* s = "UNKNOWN";
   switch (e)
@@ -158,7 +158,7 @@ const char* rtStrError_BuiltIn(rtError e)
 }
 
 rtError
-rtErrorFromErrno(int err)
+rtError_FromErrno(int err)
 {
   // RT_ASSERT(err <= 65535); // uint16_max
   return err == 0 ? RT_OK : (rtError) (err | (RT_ERROR_CLASS_SYSERROR << 16));

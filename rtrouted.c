@@ -120,7 +120,7 @@ rtRouted_DispatchCallback(rtRoutingTreeEntry* e, void* user_data)
 
   if (err != RT_OK)
   {
-    if (err == rtErrorFromErrno(EBADF))
+    if (err == rtError_FromErrno(EBADF))
       rtRouted_ClearClientRoutes(clnt);
   }
 
@@ -139,7 +139,7 @@ rtRouted_AddRoute(rtRouteMessageHandler handler, char const* exp, rtSubscription
   e = rtRoutingTree_AddRoute(routes, exp, entry);
 
   rtLog_Info("client [%s] added new route:%s. %s", subscription->client->ident, exp,
-    rtStrError(e));
+    rtError_ToString(e));
 
   return e;
 }
@@ -149,7 +149,7 @@ rtRouted_ClearClientRoutes(rtConnectedClient* clnt)
 {
   rtError e = rtRoutingTree_RemoveIf(routes, &rtRouted_RemoveClientSubscription, clnt);
   rtLog_Info("removed all routes from routing tree for client:%p. %s",
-    clnt, rtStrError(e));
+    clnt, rtError_ToString(e));
   return e;
 
 #if 0
@@ -217,7 +217,7 @@ rtRouted_ForwardMessage(rtConnectedClient* sender, rtMessageHeader* hdr, uint8_t
   {
     if (errno == EBADF)
     {
-      return rtErrorFromErrno(errno);
+      return rtError_FromErrno(errno);
     }
     else
     {
@@ -231,7 +231,7 @@ rtRouted_ForwardMessage(rtConnectedClient* sender, rtMessageHeader* hdr, uint8_t
   {
     if (errno == EBADF)
     {
-      return rtErrorFromErrno(EBADF);
+      return rtError_FromErrno(EBADF);
     }
     else
     {
@@ -330,7 +330,7 @@ rtRouter_DispatchMessageFromClient(rtConnectedClient* clnt)
     else
     {
       rtLog_Warn("failed to dispatch message from client. %s",
-          rtStrError(e));
+          rtError_ToString(e));
     }
   }
 }
@@ -344,8 +344,8 @@ rtConnectedClient_Read(rtConnectedClient* clnt)
   bytes_read = recv(clnt->fd, &clnt->read_buffer[clnt->bytes_read], bytes_to_read, MSG_NOSIGNAL);
   if (bytes_read == -1)
   {
-    rtError e = rtErrorFromErrno(errno);
-    rtLog_Warn("read:%s", rtStrError(e));
+    rtError e = rtError_FromErrno(errno);
+    rtLog_Warn("read:%s", rtError_ToString(e));
     return e;
   }
 
@@ -445,7 +445,7 @@ rtRouted_AcceptClientConnection(rtListener* listener)
   fd = accept(listener->fd, (struct sockaddr *)&remote_endpoint, &socket_length);
   if (fd == -1)
   {
-    rtLog_Warn("accept:%s", rtStrError(errno));
+    rtLog_Warn("accept:%s", rtError_ToString(errno));
     return;
   }
 
@@ -471,7 +471,7 @@ rtRouted_BindListener(char const* socket_name, int no_delay)
   listener->fd = socket(listener->local_endpoint.ss_family, SOCK_STREAM, 0);
   if (listener->fd == -1)
   {
-    rtLog_Fatal("socket:%s", rtStrError(errno));
+    rtLog_Fatal("socket:%s", rtError_ToString(errno));
     exit(1);
   }
 
@@ -489,15 +489,15 @@ rtRouted_BindListener(char const* socket_name, int no_delay)
   ret = bind(listener->fd, (struct sockaddr *)&listener->local_endpoint, socket_length);
   if (ret == -1)
   {
-    rtError err = rtErrorFromErrno(errno);
-    rtLog_Warn("failed to bind socket. %s", rtStrError(err));
+    rtError err = rtError_FromErrno(errno);
+    rtLog_Warn("failed to bind socket. %s", rtError_ToString(err));
     exit(1);
   }
 
   ret = listen(listener->fd, 4);
   if (ret == -1)
   {
-    rtLog_Warn("failed to set socket to listen mode. %s", rtStrError(errno));
+    rtLog_Warn("failed to set socket to listen mode. %s", rtError_ToString(errno));
     exit(1);
   }
 
@@ -595,7 +595,7 @@ int main(int argc, char* argv[])
     ret = daemon(0 /*chdir to "/"*/, 1 /*redirect stdout/stderr to /dev/null*/ );
     if (ret == -1)
     {
-      rtLog_Fatal("failed to fork off daemon. %s", rtStrError(errno));
+      rtLog_Fatal("failed to fork off daemon. %s", rtError_ToString(errno));
       exit(1);
     }
   }
@@ -646,7 +646,7 @@ int main(int argc, char* argv[])
 
     if (ret == -1)
     {
-      rtLog_Warn("select:%s", rtStrError(errno));
+      rtLog_Warn("select:%s", rtError_ToString(errno));
       continue;
     }
 
