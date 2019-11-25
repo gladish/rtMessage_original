@@ -57,17 +57,27 @@ namespace
 class dmQueryImpl : public dmQuery
 {
 public:
-  dmQueryImpl(dmProviderDatabase* DB)
+  dmQueryImpl(dmProviderDatabase* db)
+    : m_con()
+    , m_results()
+    , m_query()
+    , m_value()
+    , m_operation()
+    , m_instanceName()
+    , m_db(db)
+    , m_providerInfo()
   {
     rtConnection_Create(&m_con, "DMCLI", "tcp://127.0.0.1:10001");
-
-    db = DB;
+    m_db = db;
   }
 
   ~dmQueryImpl()
   {
     rtConnection_Destroy(m_con);
   }
+
+  dmQueryImpl(dmQueryImpl& rhs) = delete;
+  dmQueryImpl operator= (dmQueryImpl& rhs) = delete;
 
   void makeRequest(std::string& topic, std::string& queryString)
   {
@@ -133,7 +143,6 @@ public:
         for (int32_t j = 0; j < paramslen; ++j)
         {
           int status = 0;
-          int index = -1;
           char const* param = nullptr;
           char const* value = nullptr;
           char const* status_msg = nullptr;
@@ -251,7 +260,7 @@ private:
   std::string m_value;
   std::string m_operation;
   std::string m_instanceName;
-  dmProviderDatabase *db;
+  dmProviderDatabase* m_db;
   std::shared_ptr<dmProviderInfo> m_providerInfo;
 
   // TODO: int m_count;
