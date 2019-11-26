@@ -50,7 +50,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_C_FLAGS_DEBUG "-Wall -Wextra -g -O0 -fno-inline -Wno-unused-parameter")
 set(CMAKE_C_FLAGS_RELEASE "-Werror -Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -O0 -fno-inline -Weffc++ ")
+set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -O0 -fno-inline") # -Weffc++ ")
 set(CMAKE_CXX_FLAGS_RELEASE "-Werror -Wall -Wextra") # -Weffc++")
 
 set_define(WITH_CJSON)

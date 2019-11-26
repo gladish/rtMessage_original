@@ -111,6 +111,7 @@ rtLogLevel rtLogLevelFromString(char const* s)
   return level;
 }
 
+#ifdef RTLOG_INCLUDE_SITE
 static const char* rtTrimPath(const char* s)
 {
   if (!s)
@@ -122,6 +123,7 @@ static const char* rtTrimPath(const char* s)
 
   return t;
 }
+#endif
 
 static rtLogHandler sLogHandler = NULL;
 void rtLogSetLogHandler(rtLogHandler logHandler)
@@ -140,19 +142,30 @@ int rtLog_IsLevelEnabled(rtLogLevel level)
   return level >= sLevel;
 }
 
-void rtLogPrintf(rtLogLevel level, const char* file, int line, const char* format, ...)
+#ifdef RTLOG_INCLUDE_SITE
+void rtLog_Printf(rtLogLevel level, const char* file, int line, const char* format, ...)
+#else
+void rtLog_Printf(rtLogLevel level, const char* format, ...)
+#endif
 {
   if (level < sLevel)
     return;
 
   const char* logLevel = rtLogLevelToString(level);
+
+  #ifdef RTLOG_INCLUDE_SITE
   const char* path = rtTrimPath(file);
+  #endif
   
   rtThreadId threadId = rtThreadGetCurrentId();
 
   if (sLogHandler == NULL)
   {
+    #ifdef RTLOG_INCLUDE_SITE
     printf(RT_LOGPREFIX "%5s %s:%d -- Thread-%" RT_THREADID_FMT ": ", logLevel, path, line, threadId);
+    #else
+    printf(RT_LOGPREFIX "%5s -- Thread-%" RT_THREADID_FMT ": ", logLevel, threadId);
+    #endif
 
     va_list ptr;
     va_start(ptr, format);
@@ -174,7 +187,11 @@ void rtLogPrintf(rtLogLevel level, const char* file, int line, const char* forma
     if (n >= sizeof(buff))
       buff[sizeof(buff) - 1] = '\0';
 
+    #ifdef RTLOG_INCLUDE_SITE
     sLogHandler(level, path, line, threadId, buff);
+    #else
+    sLogHandler(level, threadId, buff);
+    #endif
   }
   
   if (level == RT_LOG_FATAL)
